@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAPI Diff Tool - stefandango.dev</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">
+                <a href="https://stefandango.dev" class="brand-link">stefandango.dev</a>
+            </div>
+            <div class="tool-info">
+                <h1>🔄 OpenAPI Diff Tool</h1>
+                <p>Compare OpenAPI/Swagger specifications and track changes chronologically</p>
+            </div>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area">
+                <div class="file-upload" id="upload1">
+                    <input type="file" id="file1" accept=".json,.yaml,.yml">
+                    <div class="file-upload-icon">📄</div>
+                    <h3>Upload First API Spec</h3>
+                    <p>Drop your OpenAPI/Swagger file here or click to browse</p>
+                    <div class="file-info" id="info1" style="display: none;"></div>
+                </div>
+
+                <div class="file-upload" id="upload2">
+                    <input type="file" id="file2" accept=".json,.yaml,.yml">
+                    <div class="file-upload-icon">📄</div>
+                    <h3>Upload Second API Spec</h3>
+                    <p>Drop your OpenAPI/Swagger file here or click to browse</p>
+                    <div class="file-info" id="info2" style="display: none;"></div>
+                </div>
+            </div>
+
+            <button class="compare-btn" id="compareBtn" disabled>
+                🔍 Compare API Specifications
+            </button>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2 class="results-title">📊 Comparison Results</h2>
+                <div class="controls">
+                    <div class="filter-controls">
+                        <button class="filter-btn active" data-filter="all">All Changes</button>
+                        <button class="filter-btn" data-filter="breaking">Breaking</button>
+                        <button class="filter-btn" data-filter="added">Added</button>
+                        <button class="filter-btn" data-filter="removed">Removed</button>
+                        <button class="filter-btn" data-filter="modified">Modified</button>
+                    </div>
+                    <div class="export-controls">
+                        <button class="export-btn" id="exportMarkdown">📄 Export Markdown</button>
+                        <button class="export-btn" id="exportJSON">📊 Export JSON</button>
+                        <button class="export-btn" id="exportHTML">🌐 Export HTML</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-summary" id="statsSummary">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalChanges">0</span>
+                    <div class="stat-label">Total Changes</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="breakingChanges">0</span>
+                    <div class="stat-label">Breaking Changes</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="addedItems">0</span>
+                    <div class="stat-label">Added</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="removedItems">0</span>
+                    <div class="stat-label">Removed</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="modifiedItems">0</span>
+                    <div class="stat-label">Modified</div>
+                </div>
+            </div>
+
+            <div class="timeline" id="timeline"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
