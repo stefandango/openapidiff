@@ -1,0 +1,39 @@
+name: Deploy Static Site
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+    - name: Add server to known hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: Deploy to server
+      run: |
+        # Create deployment directory on server
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /opt/projects/openapidiff-static/html"
+        
+        # Copy static files to server
+        scp -r index.html styles.css script.js ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/projects/openapidiff-static/html/
+        
+        # Run deployment script
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd /opt/projects/openapidiff-static && ./deploy.sh"
+        
+    - name: Verify deployment
+      run: |
+        echo "Deployment completed!"
+        echo "Site should be available at: https://openapidiff.stefandango.dev"

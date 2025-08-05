@@ -3,6 +3,7 @@ class OpenAPIDiff {
         this.spec1 = null;
         this.spec2 = null;
         this.changes = [];
+        this.compactListenersAdded = false;
         this.initializeEventListeners();
     }
 
@@ -1099,6 +1100,9 @@ class OpenAPIDiff {
     displayResults() {
         document.getElementById('resultsSection').style.display = 'block';
         
+        // Setup compact export listeners now that the buttons are visible
+        this.setupCompactExportListeners();
+        
         // Update statistics
         this.updateStatistics();
         
@@ -1110,6 +1114,16 @@ class OpenAPIDiff {
         
         // Scroll to results
         document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    setupCompactExportListeners() {
+        // Only add listeners if they haven't been added yet
+        if (!this.compactListenersAdded) {
+            document.getElementById('exportMarkdownCompact').addEventListener('click', () => this.exportMarkdownCompact());
+            document.getElementById('exportJSONCompact').addEventListener('click', () => this.exportJSONCompact());
+            document.getElementById('exportHTMLCompact').addEventListener('click', () => this.exportHTMLCompact());
+            this.compactListenersAdded = true;
+        }
     }
 
     updateStatistics() {
@@ -1409,55 +1423,269 @@ class OpenAPIDiff {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAPI Comparison Report</title>
+    <title>OpenAPI Comparison Report - stefandango.dev</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; line-height: 1.6; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
-        .stats { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
-        .stat { background: #f8f9fa; padding: 20px; border-radius: 10px; text-align: center; flex: 1; min-width: 150px; }
-        .stat-number { font-size: 2rem; font-weight: bold; color: #667eea; }
-        .change { background: white; border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-bottom: 15px; }
-        .change-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        .change-type { font-weight: bold; font-size: 1.1rem; }
-        .change-path { color: #666; font-family: monospace; font-size: 0.9rem; }
-        .badge { padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: bold; }
-        .badge-breaking { background: #f8d7da; color: #721c24; }
-        .badge-added { background: #e8f5e8; color: #2e7d2e; }
-        .badge-removed { background: #ffeaea; color: #d63384; }
-        .badge-modified { background: #fff3cd; color: #856404; }
-        .details { margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px; }
-        .breaking { border-left: 5px solid #dc3545; }
-        .added { border-left: 5px solid #28a745; }
-        .removed { border-left: 5px solid #dc3545; }
-        .modified { border-left: 5px solid #ffc107; }
+        :root {
+            --primary-color: #0078d4;
+            --secondary-color: #1e40af;
+            --accent-color: #0078d4;
+            --accent-hover: #1e40af;
+            --success-color: #38a169;
+            --warning-color: #f59e0b;
+            --danger-color: #e53e3e;
+            --background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 50%, #0f1419 100%);
+            --surface: rgba(20, 25, 35, 0.95);
+            --surface-secondary: rgba(15, 15, 25, 0.9);
+            --text-primary: #f0f4f8;
+            --text-secondary: #e0e6ed;
+            --text-muted: #d1d8e0;
+            --border-color: rgba(0, 120, 212, 0.4);
+            --border-color-subtle: rgba(0, 120, 212, 0.2);
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 4px 16px rgba(0, 120, 212, 0.15), 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--background);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-primary);
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 120, 212, 0.1), rgba(30, 64, 175, 0.1));
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+        }
+        
+        .header > * { position: relative; z-index: 1; }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .brand-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+        }
+        
+        .brand-link:hover { opacity: 1; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border-color-subtle);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: var(--shadow);
+        }
+        
+        .stat:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .stat-label { 
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 40px 0 25px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .change {
+            background: var(--surface-secondary);
+            border: 1px solid var(--border-color-subtle);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: var(--shadow);
+        }
+        
+        .change:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .change-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .change-type {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+        }
+        
+        .change-path {
+            color: var(--text-muted);
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+            font-size: 0.9rem;
+            background: rgba(0, 120, 212, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color-subtle);
+        }
+        
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-breaking {
+            background: rgba(229, 62, 62, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+        
+        .badge-added {
+            background: rgba(56, 161, 105, 0.2);
+            color: #68d391;
+            border: 1px solid rgba(56, 161, 105, 0.3);
+        }
+        
+        .badge-removed {
+            background: rgba(229, 62, 62, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(229, 62, 62, 0.3);
+        }
+        
+        .badge-modified {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .details {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0, 120, 212, 0.05);
+            border-radius: 10px;
+            border: 1px solid var(--border-color-subtle);
+        }
+        
+        .details pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color-subtle);
+        }
+        
+        .breaking { border-left: 4px solid var(--danger-color); }
+        .added { border-left: 4px solid var(--success-color); }
+        .removed { border-left: 4px solid var(--danger-color); }
+        .modified { border-left: 4px solid var(--warning-color); }
+        
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .header { padding: 30px 20px; }
+            .header h1 { font-size: 2rem; }
+            .change-header { flex-direction: column; align-items: flex-start; }
+            .stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🔄 OpenAPI Comparison Report</h1>
         <p>Generated on ${timestamp}</p>
+        <a href="https://stefandango.dev" class="brand-link">🚀 Powered by stefandango.dev</a>
     </div>
     
     <div class="stats">
         <div class="stat">
             <div class="stat-number">${stats.total}</div>
-            <div>Total Changes</div>
+            <div class="stat-label">Total Changes</div>
         </div>
         <div class="stat">
             <div class="stat-number">${stats.breaking}</div>
-            <div>Breaking Changes</div>
+            <div class="stat-label">Breaking Changes</div>
         </div>
         <div class="stat">
             <div class="stat-number">${stats.added}</div>
-            <div>Added</div>
+            <div class="stat-label">Added</div>
         </div>
         <div class="stat">
             <div class="stat-number">${stats.removed}</div>
-            <div>Removed</div>
+            <div class="stat-label">Removed</div>
         </div>
         <div class="stat">
             <div class="stat-number">${stats.modified}</div>
-            <div>Modified</div>
+            <div class="stat-label">Modified</div>
         </div>
     </div>`;
 
@@ -1482,6 +1710,306 @@ class OpenAPIDiff {
         html += `</body></html>`;
 
         this.downloadFile(html, 'api-comparison-report.html', 'text/html');
+    }
+
+    // Compact Export Methods
+    exportMarkdownCompact() {
+        if (this.changes.length === 0) {
+            alert('No changes to export. Please compare two API specifications first.');
+            return;
+        }
+
+        const stats = this.calculateStatistics();
+        const timestamp = new Date().toISOString().split('T')[0];
+        
+        let markdown = `# OpenAPI Diff - Compact Overview\n\n`;
+        markdown += `**Date:** ${timestamp} | **Total Changes:** ${stats.total} | **Breaking:** ${stats.breaking}\n\n`;
+        
+        // Breaking changes first (if any)
+        const breakingChanges = this.changes.filter(c => c.isBreaking);
+        if (breakingChanges.length > 0) {
+            markdown += `## ⚠️ Breaking Changes (${breakingChanges.length})\n\n`;
+            breakingChanges.forEach(change => {
+                markdown += `- **${change.type}** \`${change.path}\` _(${change.category})_\n`;
+            });
+            markdown += `\n`;
+        }
+        
+        // Added items
+        const addedChanges = this.changes.filter(c => c.category === 'added' && !c.isBreaking);
+        if (addedChanges.length > 0) {
+            markdown += `## ➕ Added (${addedChanges.length})\n\n`;
+            addedChanges.forEach(change => {
+                markdown += `- **${change.type}** \`${change.path}\`\n`;
+            });
+            markdown += `\n`;
+        }
+        
+        // Removed items
+        const removedChanges = this.changes.filter(c => c.category === 'removed' && !c.isBreaking);
+        if (removedChanges.length > 0) {
+            markdown += `## ➖ Removed (${removedChanges.length})\n\n`;
+            removedChanges.forEach(change => {
+                markdown += `- **${change.type}** \`${change.path}\`\n`;
+            });
+            markdown += `\n`;
+        }
+        
+        // Modified items
+        const modifiedChanges = this.changes.filter(c => c.category === 'modified' && !c.isBreaking);
+        if (modifiedChanges.length > 0) {
+            markdown += `## 🔄 Modified (${modifiedChanges.length})\n\n`;
+            modifiedChanges.forEach(change => {
+                markdown += `- **${change.type}** \`${change.path}\`\n`;
+            });
+            markdown += `\n`;
+        }
+
+        this.downloadFile(markdown, 'api-diff-compact.md', 'text/markdown');
+    }
+
+    exportJSONCompact() {
+        if (this.changes.length === 0) {
+            alert('No changes to export. Please compare two API specifications first.');
+            return;
+        }
+
+        const stats = this.calculateStatistics();
+        const compactData = {
+            timestamp: new Date().toISOString(),
+            summary: stats,
+            changes: {
+                breaking: this.changes.filter(c => c.isBreaking).map(c => ({
+                    type: c.type,
+                    path: c.path,
+                    category: c.category
+                })),
+                added: this.changes.filter(c => c.category === 'added' && !c.isBreaking).map(c => ({
+                    type: c.type,
+                    path: c.path
+                })),
+                removed: this.changes.filter(c => c.category === 'removed' && !c.isBreaking).map(c => ({
+                    type: c.type,
+                    path: c.path
+                })),
+                modified: this.changes.filter(c => c.category === 'modified' && !c.isBreaking).map(c => ({
+                    type: c.type,
+                    path: c.path
+                }))
+            },
+            overview: {
+                totalChanges: stats.total,
+                hasBreakingChanges: stats.breaking > 0,
+                mostCommonChangeType: this.getMostCommonChangeType(),
+                affectedEndpoints: [...new Set(this.changes.map(c => c.path.split(' ')[0]))].length
+            }
+        };
+
+        this.downloadFile(JSON.stringify(compactData, null, 2), 'api-diff-compact.json', 'application/json');
+    }
+
+    getMostCommonChangeType() {
+        const typeCounts = {};
+        this.changes.forEach(change => {
+            typeCounts[change.type] = (typeCounts[change.type] || 0) + 1;
+        });
+        return Object.entries(typeCounts).reduce((a, b) => typeCounts[a[0]] > typeCounts[b[0]] ? a : b)[0] || 'None';
+    }
+
+    exportHTMLCompact() {
+        if (this.changes.length === 0) {
+            alert('No changes to export. Please compare two API specifications first.');
+            return;
+        }
+
+        const stats = this.calculateStatistics();
+        const timestamp = new Date().toLocaleDateString();
+        
+        let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAPI Diff - Compact Overview</title>
+    <style>
+        body { 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 20px; 
+            background: #0a0e1a; 
+            color: #f0f4f8; 
+            line-height: 1.4; 
+            font-size: 14px;
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 25px; 
+            padding: 20px;
+            background: linear-gradient(135deg, #0078d4, #1e40af);
+            border-radius: 10px;
+        }
+        .stats { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); 
+            gap: 12px; 
+            margin-bottom: 25px; 
+        }
+        .stat { 
+            text-align: center; 
+            padding: 12px; 
+            background: rgba(20, 25, 35, 0.9); 
+            border-radius: 6px;
+            border: 1px solid rgba(0, 120, 212, 0.2);
+        }
+        .stat-number { 
+            font-size: 1.3rem; 
+            font-weight: bold; 
+            color: #0078d4; 
+        }
+        .section { 
+            margin-bottom: 20px; 
+            background: rgba(20, 25, 35, 0.6); 
+            border-radius: 8px; 
+            padding: 15px; 
+        }
+        .section h3 { 
+            margin: 0 0 10px 0; 
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .breaking-section { border-left: 4px solid #e53e3e; }
+        .added-section { border-left: 4px solid #38a169; }
+        .removed-section { border-left: 4px solid #e53e3e; }
+        .modified-section { border-left: 4px solid #f59e0b; }
+        .change-item { 
+            padding: 6px 0; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .change-item:last-child { border-bottom: none; }
+        .change-type { 
+            font-weight: 500; 
+            font-size: 0.9rem;
+        }
+        .change-path { 
+            font-family: 'SF Mono', monospace; 
+            color: #d1d8e0; 
+            font-size: 0.8rem; 
+            opacity: 0.8;
+        }
+        .brand { 
+            font-size: 0.8rem; 
+            opacity: 0.7; 
+            margin-top: 10px; 
+        }
+        .brand a { 
+            color: #0078d4; 
+            text-decoration: none; 
+        }
+        .no-changes {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.6;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔄 API Diff - Compact Overview</h1>
+        <p>Generated on ${timestamp}</p>
+        <div class="brand"><a href="https://stefandango.dev">🚀 stefandango.dev</a></div>
+    </div>
+    
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-number">${stats.total}</div>
+            <div>Total</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">${stats.breaking}</div>
+            <div>Breaking</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">${stats.added}</div>
+            <div>Added</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">${stats.removed}</div>
+            <div>Removed</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">${stats.modified}</div>
+            <div>Modified</div>
+        </div>
+    </div>`;
+
+        // Breaking changes section
+        const breakingChanges = this.changes.filter(c => c.isBreaking);
+        if (breakingChanges.length > 0) {
+            html += `<div class="section breaking-section">
+                <h3>⚠️ Breaking Changes (${breakingChanges.length})</h3>`;
+            breakingChanges.forEach(change => {
+                html += `<div class="change-item">
+                    <span class="change-type">${change.type}</span>
+                    <span class="change-path">${change.path}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        // Added section
+        const addedChanges = this.changes.filter(c => c.category === 'added' && !c.isBreaking);
+        if (addedChanges.length > 0) {
+            html += `<div class="section added-section">
+                <h3>➕ Added (${addedChanges.length})</h3>`;
+            addedChanges.forEach(change => {
+                html += `<div class="change-item">
+                    <span class="change-type">${change.type}</span>
+                    <span class="change-path">${change.path}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        // Removed section
+        const removedChanges = this.changes.filter(c => c.category === 'removed' && !c.isBreaking);
+        if (removedChanges.length > 0) {
+            html += `<div class="section removed-section">
+                <h3>➖ Removed (${removedChanges.length})</h3>`;
+            removedChanges.forEach(change => {
+                html += `<div class="change-item">
+                    <span class="change-type">${change.type}</span>
+                    <span class="change-path">${change.path}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        // Modified section
+        const modifiedChanges = this.changes.filter(c => c.category === 'modified' && !c.isBreaking);
+        if (modifiedChanges.length > 0) {
+            html += `<div class="section modified-section">
+                <h3>🔄 Modified (${modifiedChanges.length})</h3>`;
+            modifiedChanges.forEach(change => {
+                html += `<div class="change-item">
+                    <span class="change-type">${change.type}</span>
+                    <span class="change-path">${change.path}</span>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        if (this.changes.length === 0) {
+            html += `<div class="no-changes">No changes detected between the API specifications.</div>`;
+        }
+
+        html += `</body></html>`;
+
+        this.downloadFile(html, 'api-diff-compact.html', 'text/html');
     }
 
     formatChangeForMarkdown(change) {

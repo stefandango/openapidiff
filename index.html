@@ -54,9 +54,18 @@
                         <button class="filter-btn" data-filter="modified">Modified</button>
                     </div>
                     <div class="export-controls">
-                        <button class="export-btn" id="exportMarkdown">📄 Export Markdown</button>
-                        <button class="export-btn" id="exportJSON">📊 Export JSON</button>
-                        <button class="export-btn" id="exportHTML">🌐 Export HTML</button>
+                        <div class="export-group">
+                            <span class="export-group-label">Full Export</span>
+                            <button class="export-btn" id="exportMarkdown">📄 Markdown</button>
+                            <button class="export-btn" id="exportJSON">📊 JSON</button>
+                            <button class="export-btn" id="exportHTML">🌐 HTML</button>
+                        </div>
+                        <div class="export-group">
+                            <span class="export-group-label">Compact Export</span>
+                            <button class="export-btn compact" id="exportMarkdownCompact">📄 Markdown</button>
+                            <button class="export-btn compact" id="exportJSONCompact">📊 JSON</button>
+                            <button class="export-btn compact" id="exportHTMLCompact">🌐 HTML</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -90,5 +99,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
     <script src="script.js"></script>
+    
+    <!-- Umami Analytics -->
+    <script async src="https://analytics.stefandango.dev/script.js" data-website-id="openapidiff-site"></script>
 </body>
 </html>

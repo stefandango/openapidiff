@@ -228,9 +228,28 @@ body {
 
 .export-controls {
     display: flex;
-    gap: 10px;
-    align-items: center;
+    gap: 20px;
+    align-items: flex-start;
     flex-wrap: wrap;
+}
+
+.export-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.export-group-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.export-group .export-btn {
+    min-width: 100px;
 }
 
 .filter-btn {
@@ -274,6 +293,18 @@ body {
     color: white;
     transform: translateY(-1px);
     box-shadow: var(--shadow);
+}
+
+.export-btn.compact {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    font-size: 0.85rem;
+    padding: 6px 14px;
+}
+
+.export-btn.compact:hover {
+    background: var(--accent-color);
+    color: white;
 }
 
 .timeline {
@@ -494,5 +525,23 @@ body {
     
     .filter-controls, .export-controls {
         justify-content: center;
+    }
+    
+    .export-controls {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .export-group {
+        flex-direction: row;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .export-group-label {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 5px;
     }
 }
