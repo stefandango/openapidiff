@@ -24,14 +24,28 @@ jobs:
         
     - name: Deploy to server
       run: |
-        # Create deployment directory on server
-        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /opt/projects/openapidiff-static/html"
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          # Pull latest infrastructure configuration
+          cd /opt/projects/hetzner-infrastructure
+          git pull origin main
+          
+          # Create deployment directory
+          mkdir -p projects/openapidiff-static/html
+          
+          # Run deployment script from infrastructure repo
+          cd projects/openapidiff-static
+          chmod +x deploy.sh
+          ./deploy.sh deploy
+          
+          echo "✅ Deployment completed successfully"
+          docker ps | grep openapidiff-static
+        EOF
         
-        # Copy static files to server
-        scp -r index.html styles.css script.js ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/projects/openapidiff-static/html/
+        # Copy static files to server after deployment setup
+        scp -r index.html styles.css script.js ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/projects/hetzner-infrastructure/projects/openapidiff-static/html/
         
-        # Run deployment script
-        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd /opt/projects/openapidiff-static && ./deploy.sh"
+        # Restart the service to pick up new files
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd /opt/projects/hetzner-infrastructure/projects/openapidiff-static && ./deploy.sh restart"
         
     - name: Verify deployment
       run: |
