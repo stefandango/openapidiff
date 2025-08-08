@@ -41,8 +41,14 @@ jobs:
           docker ps | grep openapidiff-static
         EOF
         
-        # Copy static files to server after deployment setup
-        scp -r index.html styles.css script.js ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/projects/hetzner-infrastructure/projects/openapidiff-static/html/
+        # Process HTML file to replace Umami website ID
+        sed 's/data-website-id="openapidiff-site"/data-website-id="06177427-4285-4537-a211-29c1ccf929ca"/' index.html > index_processed.html
+        
+        # Copy processed static files to server
+        scp index_processed.html styles.css script.js ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/projects/hetzner-infrastructure/projects/openapidiff-static/html/
+        
+        # Rename the processed file on server to index.html
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd /opt/projects/hetzner-infrastructure/projects/openapidiff-static/html && mv index_processed.html index.html"
         
         # Restart the service to pick up new files
         ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd /opt/projects/hetzner-infrastructure/projects/openapidiff-static && ./deploy.sh restart"
