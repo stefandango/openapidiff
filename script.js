@@ -60,17 +60,29 @@ class OpenAPIDiff {
     }
 
     async processFile(file, fileNumber) {
+        // Show loading spinner
+        this.showFileLoading(fileNumber, 'Reading file...');
+        
         try {
+            // Small delay to show loading state
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            this.updateFileLoadingText(fileNumber, 'Parsing content...');
             const content = await this.readFile(file);
             let parsed;
             
             if (file.name.endsWith('.json')) {
+                this.updateFileLoadingText(fileNumber, 'Parsing JSON...');
                 parsed = JSON.parse(content);
             } else if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
+                this.updateFileLoadingText(fileNumber, 'Parsing YAML...');
                 parsed = jsyaml.load(content);
             } else {
                 throw new Error('Unsupported file format');
             }
+
+            this.updateFileLoadingText(fileNumber, 'Validating structure...');
+            await new Promise(resolve => setTimeout(resolve, 200));
 
             if (fileNumber === 1) {
                 this.spec1 = parsed;
@@ -78,9 +90,11 @@ class OpenAPIDiff {
                 this.spec2 = parsed;
             }
 
+            this.hideFileLoading(fileNumber);
             this.updateFileInfo(file, fileNumber, parsed);
             this.updateCompareButton();
         } catch (error) {
+            this.hideFileLoading(fileNumber);
             alert(`Error parsing file: ${error.message}`);
         }
     }
@@ -121,20 +135,38 @@ class OpenAPIDiff {
         if (!this.spec1 || !this.spec2) return;
 
         const btn = document.getElementById('compareBtn');
-        btn.innerHTML = '<div class="loading-spinner"></div> Comparing...';
+        btn.innerHTML = '<div class="loading-spinner"></div> Starting comparison...';
         btn.disabled = true;
 
-        // Small delay to show loading state
-        await new Promise(resolve => setTimeout(resolve, 100));
-
+        // Show progress UI
+        this.showComparisonProgress();
+        
         try {
             this.changes = [];
+            
+            // Step 1: Compare info sections
+            this.updateProgress(1, 'Analyzing API info sections...');
+            await new Promise(resolve => setTimeout(resolve, 300));
             this.compareInfo();
+            
+            // Step 2: Compare paths
+            this.updateProgress(2, 'Comparing paths and endpoints...');
+            await new Promise(resolve => setTimeout(resolve, 500));
             this.comparePaths();
+            
+            // Step 3: Compare components
+            this.updateProgress(3, 'Checking schemas and components...');
+            await new Promise(resolve => setTimeout(resolve, 400));
             this.compareComponents();
             
+            // Step 4: Generate results
+            this.updateProgress(4, 'Generating comparison results...');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            this.hideComparisonProgress();
             this.displayResults();
         } catch (error) {
+            this.hideComparisonProgress();
             alert(`Error during comparison: ${error.message}`);
         } finally {
             btn.innerHTML = '🔍 Compare API Specifications';
@@ -2059,6 +2091,67 @@ class OpenAPIDiff {
         
         html += `</div>`;
         return html;
+    }
+
+    showFileLoading(fileNumber, text = 'Processing file...') {
+        const loadingElement = document.getElementById(`loading${fileNumber}`);
+        const textElement = loadingElement.querySelector('.loading-text');
+        textElement.textContent = text;
+        loadingElement.style.display = 'block';
+    }
+    
+    hideFileLoading(fileNumber) {
+        const loadingElement = document.getElementById(`loading${fileNumber}`);
+        loadingElement.style.display = 'none';
+    }
+    
+    updateFileLoadingText(fileNumber, text) {
+        const loadingElement = document.getElementById(`loading${fileNumber}`);
+        const textElement = loadingElement.querySelector('.loading-text');
+        textElement.textContent = text;
+    }
+    
+    showComparisonProgress() {
+        const progressElement = document.getElementById('comparisonProgress');
+        progressElement.style.display = 'block';
+        
+        // Reset all steps
+        document.querySelectorAll('.progress-step').forEach(step => {
+            step.classList.remove('active', 'completed');
+        });
+        
+        // Reset progress bar
+        document.getElementById('progressBar').style.width = '0%';
+    }
+    
+    hideComparisonProgress() {
+        const progressElement = document.getElementById('comparisonProgress');
+        progressElement.style.display = 'none';
+    }
+    
+    updateProgress(stepNumber, statusText) {
+        const progressStatus = document.getElementById('progressStatus');
+        const progressBar = document.getElementById('progressBar');
+        const currentStep = document.getElementById(`step${stepNumber}`);
+        
+        // Update status text
+        progressStatus.textContent = statusText;
+        
+        // Update progress bar (25% per step)
+        const percentage = (stepNumber / 4) * 100;
+        progressBar.style.width = percentage + '%';
+        
+        // Update step states
+        document.querySelectorAll('.progress-step').forEach((step, index) => {
+            const stepNum = index + 1;
+            step.classList.remove('active', 'completed');
+            
+            if (stepNum < stepNumber) {
+                step.classList.add('completed');
+            } else if (stepNum === stepNumber) {
+                step.classList.add('active');
+            }
+        });
     }
 
     downloadFile(content, filename, mimeType) {

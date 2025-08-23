@@ -26,6 +26,10 @@
                     <h3>Upload First API Spec</h3>
                     <p>Drop your OpenAPI/Swagger file here or click to browse</p>
                     <div class="file-info" id="info1" style="display: none;"></div>
+                    <div class="upload-loading" id="loading1" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <p class="loading-text">Processing file...</p>
+                    </div>
                 </div>
 
                 <div class="file-upload" id="upload2">
@@ -34,12 +38,32 @@
                     <h3>Upload Second API Spec</h3>
                     <p>Drop your OpenAPI/Swagger file here or click to browse</p>
                     <div class="file-info" id="info2" style="display: none;"></div>
+                    <div class="upload-loading" id="loading2" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <p class="loading-text">Processing file...</p>
+                    </div>
                 </div>
             </div>
 
             <button class="compare-btn" id="compareBtn" disabled>
                 🔍 Compare API Specifications
             </button>
+
+            <div class="comparison-progress" id="comparisonProgress" style="display: none;">
+                <div class="progress-header">
+                    <h3>🔄 Comparing API Specifications</h3>
+                    <div class="progress-status" id="progressStatus">Initializing comparison...</div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="progress-steps">
+                    <div class="progress-step" id="step1">📊 Analyzing info sections</div>
+                    <div class="progress-step" id="step2">🛣️ Comparing paths and methods</div>
+                    <div class="progress-step" id="step3">🧩 Checking components and schemas</div>
+                    <div class="progress-step" id="step4">✨ Generating results</div>
+                </div>
+            </div>
         </div>
 
         <div class="results-section" id="resultsSection">
