@@ -658,10 +658,7 @@ body {
 
 /* Footer */
 .footer {
-    margin-top: 40px;
     padding: 20px 30px;
-    border-top: 1px solid var(--border-color-subtle);
-    background: var(--surface-secondary);
 }
 
 .version-info {
