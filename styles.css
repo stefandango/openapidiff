@@ -655,3 +655,19 @@ body {
         margin-top: 10px;
     }
 }
+
+/* Footer */
+.footer {
+    padding: 20px 30px;
+}
+
+.version-info {
+    text-align: center;
+}
+
+.version-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    opacity: 0.3;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}

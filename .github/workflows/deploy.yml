@@ -41,8 +41,17 @@ jobs:
           docker ps | grep openapidiff-static
         EOF
         
-        # Process HTML file to replace Umami website ID
-        sed 's/data-website-id="openapidiff-site"/data-website-id="06177427-4285-4537-a211-29c1ccf929ca"/' index.html > index_processed.html
+    - name: Set version from git commit
+      id: version
+      run: echo "version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      
+    - name: Replace version placeholder and process HTML file
+      run: |
+        # Replace version placeholder
+        sed 's/{{VERSION}}/${{ steps.version.outputs.version }}/g' index.html > index_temp.html
+        # Replace Umami website ID
+        sed 's/data-website-id="openapidiff-site"/data-website-id="06177427-4285-4537-a211-29c1ccf929ca"/' index_temp.html > index_processed.html
+        rm index_temp.html
         
         # Copy processed static files to server
         scp index_processed.html styles.css script.js ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/projects/hetzner-infrastructure/projects/openapidiff-static/html/
