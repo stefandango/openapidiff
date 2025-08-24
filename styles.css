@@ -137,7 +137,7 @@ body {
     box-shadow: var(--shadow);
 }
 
-.file-upload input {
+.file-upload input[type="file"] {
     display: none;
 }
 
