@@ -32,6 +32,18 @@ class OpenAPIDiff {
         document.getElementById('exportMarkdown').addEventListener('click', () => this.exportMarkdown());
         document.getElementById('exportJSON').addEventListener('click', () => this.exportJSON());
         document.getElementById('exportHTML').addEventListener('click', () => this.exportHTML());
+
+        // URL fetch buttons
+        document.getElementById('fetchBtn1').addEventListener('click', () => this.fetchFromUrl(1));
+        document.getElementById('fetchBtn2').addEventListener('click', () => this.fetchFromUrl(2));
+        
+        // Enter key support for URL inputs
+        document.getElementById('url1').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.fetchFromUrl(1);
+        });
+        document.getElementById('url2').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.fetchFromUrl(2);
+        });
     }
 
     handleDragOver(e) {
@@ -120,6 +132,130 @@ class OpenAPIDiff {
             Size: ${(file.size / 1024).toFixed(1)} KB
         `;
         info.style.display = 'block';
+    }
+
+    updateUrlInfo(url, fileNumber, spec, contentLength) {
+        const info = document.getElementById(`info${fileNumber}`);
+        const pathCount = this.countPaths(spec);
+        const version = spec.info?.version || 'Unknown';
+        const urlName = new URL(url).pathname.split('/').pop() || 'OpenAPI Spec';
+        
+        info.innerHTML = `
+            <strong>📡 ${urlName}</strong><br>
+            Version: ${version}<br>
+            Paths: ${pathCount}<br>
+            Source: ${new URL(url).hostname}${contentLength ? `<br>Size: ${(contentLength / 1024).toFixed(1)} KB` : ''}
+        `;
+        info.style.display = 'block';
+    }
+
+    async fetchFromUrl(fileNumber) {
+        const urlInput = document.getElementById(`url${fileNumber}`);
+        const url = urlInput.value.trim();
+        
+        if (!url) {
+            alert('Please enter a URL');
+            return;
+        }
+
+        if (!this.isValidUrl(url)) {
+            alert('Please enter a valid URL (must start with http:// or https://)');
+            return;
+        }
+
+        this.showFileLoading(fileNumber, 'Fetching from URL...');
+
+        try {
+            this.updateFileLoadingText(fileNumber, 'Downloading specification...');
+            
+            // Fetch the content from the URL
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json, application/x-yaml, text/yaml, text/plain, */*'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            this.updateFileLoadingText(fileNumber, 'Reading response...');
+            const content = await response.text();
+            const contentLength = content.length;
+
+            this.updateFileLoadingText(fileNumber, 'Parsing content...');
+            let parsed;
+
+            // Try to determine format and parse accordingly
+            const contentType = response.headers.get('content-type') || '';
+            const urlLower = url.toLowerCase();
+            
+            if (contentType.includes('json') || urlLower.includes('.json') || content.trim().startsWith('{')) {
+                this.updateFileLoadingText(fileNumber, 'Parsing JSON...');
+                parsed = JSON.parse(content);
+            } else if (contentType.includes('yaml') || contentType.includes('yml') || 
+                       urlLower.includes('.yaml') || urlLower.includes('.yml') || 
+                       content.includes('openapi:') || content.includes('swagger:')) {
+                this.updateFileLoadingText(fileNumber, 'Parsing YAML...');
+                parsed = jsyaml.load(content);
+            } else {
+                // Try JSON first, then YAML
+                try {
+                    parsed = JSON.parse(content);
+                } catch {
+                    parsed = jsyaml.load(content);
+                }
+            }
+
+            this.updateFileLoadingText(fileNumber, 'Validating OpenAPI specification...');
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Basic validation
+            if (!parsed || typeof parsed !== 'object') {
+                throw new Error('Invalid OpenAPI specification format');
+            }
+
+            if (!parsed.openapi && !parsed.swagger) {
+                throw new Error('Not a valid OpenAPI/Swagger specification (missing openapi or swagger field)');
+            }
+
+            if (fileNumber === 1) {
+                this.spec1 = parsed;
+            } else {
+                this.spec2 = parsed;
+            }
+
+            this.hideFileLoading(fileNumber);
+            this.updateUrlInfo(url, fileNumber, parsed, contentLength);
+            this.updateCompareButton();
+            
+            // Clear the URL input after successful fetch
+            urlInput.value = '';
+
+        } catch (error) {
+            this.hideFileLoading(fileNumber);
+            
+            let errorMessage = 'Error fetching URL: ';
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage += 'Network error or CORS policy. The URL might not allow cross-origin requests.';
+            } else if (error.name === 'SyntaxError') {
+                errorMessage += 'Invalid JSON/YAML format in the response.';
+            } else {
+                errorMessage += error.message;
+            }
+            
+            alert(errorMessage);
+        }
+    }
+
+    isValidUrl(string) {
+        try {
+            const url = new URL(string);
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch {
+            return false;
+        }
     }
 
     countPaths(spec) {
