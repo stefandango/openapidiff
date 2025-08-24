@@ -13,7 +13,15 @@ class OpenAPIDiff {
             const uploadArea = document.getElementById(id);
             const fileInput = document.getElementById(`file${index + 1}`);
             
-            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('click', (e) => {
+                // Don't trigger file input if clicking on URL input or button
+                if (e.target.classList.contains('url-input') || 
+                    e.target.classList.contains('url-fetch-btn') ||
+                    e.target.closest('.url-input-section')) {
+                    return;
+                }
+                fileInput.click();
+            });
             uploadArea.addEventListener('dragover', this.handleDragOver);
             uploadArea.addEventListener('dragleave', this.handleDragLeave);
             uploadArea.addEventListener('drop', (e) => this.handleDrop(e, index + 1));
@@ -34,15 +42,27 @@ class OpenAPIDiff {
         document.getElementById('exportHTML').addEventListener('click', () => this.exportHTML());
 
         // URL fetch buttons
-        document.getElementById('fetchBtn1').addEventListener('click', () => this.fetchFromUrl(1));
-        document.getElementById('fetchBtn2').addEventListener('click', () => this.fetchFromUrl(2));
-        
-        // Enter key support for URL inputs
-        document.getElementById('url1').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.fetchFromUrl(1);
+        document.getElementById('fetchBtn1').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.fetchFromUrl(1);
         });
-        document.getElementById('url2').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.fetchFromUrl(2);
+        document.getElementById('fetchBtn2').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.fetchFromUrl(2);
+        });
+        
+        // URL input event handlers
+        ['url1', 'url2'].forEach((id, index) => {
+            const urlInput = document.getElementById(id);
+            
+            // Prevent parent click handler when focusing/clicking URL input
+            urlInput.addEventListener('click', (e) => e.stopPropagation());
+            urlInput.addEventListener('focus', (e) => e.stopPropagation());
+            
+            // Enter key support
+            urlInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.fetchFromUrl(index + 1);
+            });
         });
     }
 
