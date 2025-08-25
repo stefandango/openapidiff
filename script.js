@@ -8,6 +8,15 @@ class OpenAPIDiff {
     }
 
     initializeEventListeners() {
+        // Input type switching
+        document.querySelectorAll('.input-type-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const inputNumber = e.target.dataset.input;
+                const inputType = e.target.dataset.type;
+                this.switchInputType(inputNumber, inputType);
+            });
+        });
+
         // File upload handling
         ['upload1', 'upload2'].forEach((id, index) => {
             const uploadArea = document.getElementById(id);
@@ -73,6 +82,20 @@ class OpenAPIDiff {
 
     handleDragLeave(e) {
         e.currentTarget.classList.remove('dragover');
+    }
+
+    switchInputType(inputNumber, inputType) {
+        // Update buttons for this input
+        document.querySelectorAll(`[data-input="${inputNumber}"]`).forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-input="${inputNumber}"][data-type="${inputType}"]`).classList.add('active');
+
+        // Update content visibility for this input
+        document.querySelectorAll(`#fileInput${inputNumber}, #urlInput${inputNumber}`).forEach(methodEl => {
+            methodEl.classList.remove('active');
+        });
+        document.getElementById(`${inputType}Input${inputNumber}`).classList.add('active');
     }
 
     handleDrop(e, fileNumber) {
@@ -145,29 +168,35 @@ class OpenAPIDiff {
         const pathCount = this.countPaths(spec);
         const version = spec.info?.version || 'Unknown';
         
-        info.innerHTML = `
-            <strong>${file.name}</strong><br>
-            Version: ${version}<br>
-            Paths: ${pathCount}<br>
-            Size: ${(file.size / 1024).toFixed(1)} KB
-        `;
-        info.style.display = 'block';
+        if (info) {
+            info.innerHTML = `
+                <strong>${file.name}</strong><br>
+                Version: ${version}<br>
+                Paths: ${pathCount}<br>
+                Size: ${(file.size / 1024).toFixed(1)} KB
+            `;
+            info.style.display = 'block';
+        }
     }
 
-    updateUrlInfo(url, fileNumber, spec, contentLength) {
-        const info = document.getElementById(`info${fileNumber}`);
+    updateUrlInfo(url, fileNumber, spec) {
+        const info = document.getElementById(`urlInfo${fileNumber}`);
         const pathCount = this.countPaths(spec);
         const version = spec.info?.version || 'Unknown';
-        const urlName = new URL(url).pathname.split('/').pop() || 'OpenAPI Spec';
+        const urlObj = new URL(url);
+        const filename = urlObj.pathname.split('/').pop() || 'api-spec';
         
-        info.innerHTML = `
-            <strong>📡 ${urlName}</strong><br>
-            Version: ${version}<br>
-            Paths: ${pathCount}<br>
-            Source: ${new URL(url).hostname}${contentLength ? `<br>Size: ${(contentLength / 1024).toFixed(1)} KB` : ''}
-        `;
-        info.style.display = 'block';
+        if (info) {
+            info.innerHTML = `
+                <strong>${filename}</strong><br>
+                Version: ${version}<br>
+                Paths: ${pathCount}<br>
+                Source: ${urlObj.hostname}
+            `;
+            info.style.display = 'block';
+        }
     }
+
 
     async fetchFromUrl(fileNumber) {
         const urlInput = document.getElementById(`url${fileNumber}`);
@@ -247,7 +276,7 @@ class OpenAPIDiff {
             }
 
             this.hideFileLoading(fileNumber);
-            this.updateUrlInfo(url, fileNumber, parsed, contentLength);
+            this.updateUrlInfo(url, fileNumber, parsed);
             this.updateCompareButton();
             
             // Clear the URL input after successful fetch
@@ -2251,20 +2280,51 @@ class OpenAPIDiff {
 
     showFileLoading(fileNumber, text = 'Processing file...') {
         const loadingElement = document.getElementById(`loading${fileNumber}`);
-        const textElement = loadingElement.querySelector('.loading-text');
-        textElement.textContent = text;
-        loadingElement.style.display = 'block';
+        const urlLoadingElement = document.getElementById(`urlLoading${fileNumber}`);
+        
+        if (loadingElement) {
+            const textElement = loadingElement.querySelector('.loading-text');
+            textElement.textContent = text;
+            loadingElement.style.display = 'block';
+        }
+        
+        if (urlLoadingElement) {
+            const textElement = urlLoadingElement.querySelector('.loading-text');
+            textElement.textContent = text;
+            urlLoadingElement.style.display = 'block';
+        }
     }
     
     hideFileLoading(fileNumber) {
         const loadingElement = document.getElementById(`loading${fileNumber}`);
-        loadingElement.style.display = 'none';
+        const urlLoadingElement = document.getElementById(`urlLoading${fileNumber}`);
+        
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+        
+        if (urlLoadingElement) {
+            urlLoadingElement.style.display = 'none';
+        }
     }
     
     updateFileLoadingText(fileNumber, text) {
         const loadingElement = document.getElementById(`loading${fileNumber}`);
-        const textElement = loadingElement.querySelector('.loading-text');
-        textElement.textContent = text;
+        const urlLoadingElement = document.getElementById(`urlLoading${fileNumber}`);
+        
+        if (loadingElement) {
+            const textElement = loadingElement.querySelector('.loading-text');
+            if (textElement) {
+                textElement.textContent = text;
+            }
+        }
+        
+        if (urlLoadingElement) {
+            const textElement = urlLoadingElement.querySelector('.loading-text');
+            if (textElement) {
+                textElement.textContent = text;
+            }
+        }
     }
     
     showComparisonProgress() {
