@@ -63,15 +63,12 @@ class OpenAPIDiff {
         // URL input event handlers
         ['url1', 'url2'].forEach((id, index) => {
             const urlInput = document.getElementById(id);
-<<<<<<< HEAD
-=======
             
             // Prevent parent click handler when focusing/clicking URL input
             urlInput.addEventListener('click', (e) => e.stopPropagation());
             urlInput.addEventListener('focus', (e) => e.stopPropagation());
             
             // Enter key support
->>>>>>> refs/remotes/origin/main
             urlInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') this.fetchFromUrl(index + 1);
             });
@@ -200,10 +197,6 @@ class OpenAPIDiff {
         }
     }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> refs/remotes/origin/main
     async fetchFromUrl(fileNumber) {
         const urlInput = document.getElementById(`url${fileNumber}`);
         const url = urlInput.value.trim();
@@ -223,10 +216,7 @@ class OpenAPIDiff {
         try {
             this.updateFileLoadingText(fileNumber, 'Downloading specification...');
             
-<<<<<<< HEAD
-=======
             // Fetch the content from the URL
->>>>>>> refs/remotes/origin/main
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -240,18 +230,12 @@ class OpenAPIDiff {
 
             this.updateFileLoadingText(fileNumber, 'Reading response...');
             const content = await response.text();
-<<<<<<< HEAD
-=======
             const contentLength = content.length;
->>>>>>> refs/remotes/origin/main
 
             this.updateFileLoadingText(fileNumber, 'Parsing content...');
             let parsed;
 
-<<<<<<< HEAD
-=======
             // Try to determine format and parse accordingly
->>>>>>> refs/remotes/origin/main
             const contentType = response.headers.get('content-type') || '';
             const urlLower = url.toLowerCase();
             
@@ -264,19 +248,6 @@ class OpenAPIDiff {
                 this.updateFileLoadingText(fileNumber, 'Parsing YAML...');
                 parsed = jsyaml.load(content);
             } else {
-<<<<<<< HEAD
-                try {
-                    parsed = JSON.parse(content);
-                } catch {
-                    try {
-                        parsed = jsyaml.load(content);
-                    } catch {
-                        throw new Error('Could not parse content as JSON or YAML');
-                    }
-                }
-            }
-
-=======
                 // Try JSON first, then YAML
                 try {
                     parsed = JSON.parse(content);
@@ -297,7 +268,6 @@ class OpenAPIDiff {
                 throw new Error('Not a valid OpenAPI/Swagger specification (missing openapi or swagger field)');
             }
 
->>>>>>> refs/remotes/origin/main
             if (fileNumber === 1) {
                 this.spec1 = parsed;
             } else {
@@ -308,13 +278,6 @@ class OpenAPIDiff {
             this.updateUrlInfo(url, fileNumber, parsed);
             this.updateCompareButton();
             
-<<<<<<< HEAD
-            urlInput.value = '';
-            
-        } catch (error) {
-            this.hideFileLoading(fileNumber);
-            alert(`Error fetching from URL: ${error.message}`);
-=======
             // Clear the URL input after successful fetch
             urlInput.value = '';
 
@@ -331,20 +294,14 @@ class OpenAPIDiff {
             }
             
             alert(errorMessage);
->>>>>>> refs/remotes/origin/main
         }
     }
 
     isValidUrl(string) {
         try {
             const url = new URL(string);
-<<<<<<< HEAD
-            return url.protocol === "http:" || url.protocol === "https:";
-        } catch (_) {
-=======
             return url.protocol === 'http:' || url.protocol === 'https:';
         } catch {
->>>>>>> refs/remotes/origin/main
             return false;
         }
     }
