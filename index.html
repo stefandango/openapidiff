@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <title>OpenAPI Diff Tool - stefandango.dev</title>
+    <meta name="description" content="Compare OpenAPI/Swagger specifications and visualize changes">
+    <meta name="author" content="stefandango.dev">
+    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,27 +24,85 @@
 
         <div class="upload-section">
             <div class="upload-area">
-                <div class="file-upload" id="upload1">
-                    <input type="file" id="file1" accept=".json,.yaml,.yml">
-                    <div class="file-upload-icon">📄</div>
-                    <h3>Upload First API Spec</h3>
-                    <p>Drop your OpenAPI/Swagger file here or click to browse</p>
-                    <div class="file-info" id="info1" style="display: none;"></div>
-                    <div class="upload-loading" id="loading1" style="display: none;">
-                        <div class="loading-spinner"></div>
-                        <p class="loading-text">Processing file...</p>
+                <!-- First API Spec -->
+                <div class="api-input-container">
+                    <div class="input-type-selector">
+                        <button class="input-type-btn active" data-input="1" data-type="file">📁 Upload File</button>
+                        <button class="input-type-btn" data-input="1" data-type="url">🔗 From URL</button>
+                    </div>
+                    
+                    <div class="input-content">
+                        <!-- File Input -->
+                        <div class="input-method file-input active" id="fileInput1">
+                            <div class="file-upload" id="upload1">
+                                <input type="file" id="file1" accept=".json,.yaml,.yml">
+                                <div class="file-upload-icon">📄</div>
+                                <h3>First API Spec</h3>
+                                <p>Drop your OpenAPI/Swagger file here or click to browse</p>
+                                <div class="file-info" id="info1" style="display: none;"></div>
+                                <div class="upload-loading" id="loading1" style="display: none;">
+                                    <div class="loading-spinner"></div>
+                                    <p class="loading-text">Processing file...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- URL Input -->
+                        <div class="input-method url-input" id="urlInput1">
+                            <div class="url-input-group">
+                                <h3>First API Spec URL</h3>
+                                <div class="url-input-section">
+                                    <input type="url" id="url1" placeholder="https://example.com/openapi.json" class="url-input">
+                                    <button class="url-fetch-btn" id="fetchBtn1">🔗 Fetch</button>
+                                </div>
+                                <div class="file-info" id="urlInfo1" style="display: none;"></div>
+                                <div class="upload-loading" id="urlLoading1" style="display: none;">
+                                    <div class="loading-spinner"></div>
+                                    <p class="loading-text">Fetching from URL...</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="file-upload" id="upload2">
-                    <input type="file" id="file2" accept=".json,.yaml,.yml">
-                    <div class="file-upload-icon">📄</div>
-                    <h3>Upload Second API Spec</h3>
-                    <p>Drop your OpenAPI/Swagger file here or click to browse</p>
-                    <div class="file-info" id="info2" style="display: none;"></div>
-                    <div class="upload-loading" id="loading2" style="display: none;">
-                        <div class="loading-spinner"></div>
-                        <p class="loading-text">Processing file...</p>
+                <!-- Second API Spec -->
+                <div class="api-input-container">
+                    <div class="input-type-selector">
+                        <button class="input-type-btn active" data-input="2" data-type="file">📁 Upload File</button>
+                        <button class="input-type-btn" data-input="2" data-type="url">🔗 From URL</button>
+                    </div>
+                    
+                    <div class="input-content">
+                        <!-- File Input -->
+                        <div class="input-method file-input active" id="fileInput2">
+                            <div class="file-upload" id="upload2">
+                                <input type="file" id="file2" accept=".json,.yaml,.yml">
+                                <div class="file-upload-icon">📄</div>
+                                <h3>Second API Spec</h3>
+                                <p>Drop your OpenAPI/Swagger file here or click to browse</p>
+                                <div class="file-info" id="info2" style="display: none;"></div>
+                                <div class="upload-loading" id="loading2" style="display: none;">
+                                    <div class="loading-spinner"></div>
+                                    <p class="loading-text">Processing file...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- URL Input -->
+                        <div class="input-method url-input" id="urlInput2">
+                            <div class="url-input-group">
+                                <h3>Second API Spec URL</h3>
+                                <div class="url-input-section">
+                                    <input type="url" id="url2" placeholder="https://example.com/openapi.json" class="url-input">
+                                    <button class="url-fetch-btn" id="fetchBtn2">🔗 Fetch</button>
+                                </div>
+                                <div class="file-info" id="urlInfo2" style="display: none;"></div>
+                                <div class="upload-loading" id="urlLoading2" style="display: none;">
+                                    <div class="loading-spinner"></div>
+                                    <p class="loading-text">Fetching from URL...</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -122,8 +184,10 @@
     </div>
 
     <footer class="footer">
-        <div class="version-info">
-            <span class="version-label">{{VERSION}}</span>
+        <div class="footer-content">
+            <div class="version-info">
+                <span class="version-label">{{VERSION}}</span>
+            </div>
         </div>
     </footer>
 

@@ -8,6 +8,15 @@ class OpenAPIDiff {
     }
 
     initializeEventListeners() {
+        // Input type switching
+        document.querySelectorAll('.input-type-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const inputNumber = e.target.dataset.input;
+                const inputType = e.target.dataset.type;
+                this.switchInputType(inputNumber, inputType);
+            });
+        });
+
         // File upload handling
         ['upload1', 'upload2'].forEach((id, index) => {
             const uploadArea = document.getElementById(id);
@@ -32,6 +41,24 @@ class OpenAPIDiff {
         document.getElementById('exportMarkdown').addEventListener('click', () => this.exportMarkdown());
         document.getElementById('exportJSON').addEventListener('click', () => this.exportJSON());
         document.getElementById('exportHTML').addEventListener('click', () => this.exportHTML());
+
+        // URL fetch buttons
+        document.getElementById('fetchBtn1').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.fetchFromUrl(1);
+        });
+        document.getElementById('fetchBtn2').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.fetchFromUrl(2);
+        });
+        
+        // URL input event handlers
+        ['url1', 'url2'].forEach((id, index) => {
+            const urlInput = document.getElementById(id);
+            urlInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.fetchFromUrl(index + 1);
+            });
+        });
     }
 
     handleDragOver(e) {
@@ -41,6 +68,20 @@ class OpenAPIDiff {
 
     handleDragLeave(e) {
         e.currentTarget.classList.remove('dragover');
+    }
+
+    switchInputType(inputNumber, inputType) {
+        // Update buttons for this input
+        document.querySelectorAll(`[data-input="${inputNumber}"]`).forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-input="${inputNumber}"][data-type="${inputType}"]`).classList.add('active');
+
+        // Update content visibility for this input
+        document.querySelectorAll(`#fileInput${inputNumber}, #urlInput${inputNumber}`).forEach(methodEl => {
+            methodEl.classList.remove('active');
+        });
+        document.getElementById(`${inputType}Input${inputNumber}`).classList.add('active');
     }
 
     handleDrop(e, fileNumber) {
@@ -113,13 +154,119 @@ class OpenAPIDiff {
         const pathCount = this.countPaths(spec);
         const version = spec.info?.version || 'Unknown';
         
-        info.innerHTML = `
-            <strong>${file.name}</strong><br>
-            Version: ${version}<br>
-            Paths: ${pathCount}<br>
-            Size: ${(file.size / 1024).toFixed(1)} KB
-        `;
-        info.style.display = 'block';
+        if (info) {
+            info.innerHTML = `
+                <strong>${file.name}</strong><br>
+                Version: ${version}<br>
+                Paths: ${pathCount}<br>
+                Size: ${(file.size / 1024).toFixed(1)} KB
+            `;
+            info.style.display = 'block';
+        }
+    }
+
+    updateUrlInfo(url, fileNumber, spec) {
+        const info = document.getElementById(`urlInfo${fileNumber}`);
+        const pathCount = this.countPaths(spec);
+        const version = spec.info?.version || 'Unknown';
+        const urlObj = new URL(url);
+        const filename = urlObj.pathname.split('/').pop() || 'api-spec';
+        
+        if (info) {
+            info.innerHTML = `
+                <strong>${filename}</strong><br>
+                Version: ${version}<br>
+                Paths: ${pathCount}<br>
+                Source: ${urlObj.hostname}
+            `;
+            info.style.display = 'block';
+        }
+    }
+
+    async fetchFromUrl(fileNumber) {
+        const urlInput = document.getElementById(`url${fileNumber}`);
+        const url = urlInput.value.trim();
+        
+        if (!url) {
+            alert('Please enter a URL');
+            return;
+        }
+
+        if (!this.isValidUrl(url)) {
+            alert('Please enter a valid URL (must start with http:// or https://)');
+            return;
+        }
+
+        this.showFileLoading(fileNumber, 'Fetching from URL...');
+
+        try {
+            this.updateFileLoadingText(fileNumber, 'Downloading specification...');
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json, application/x-yaml, text/yaml, text/plain, */*'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            this.updateFileLoadingText(fileNumber, 'Reading response...');
+            const content = await response.text();
+
+            this.updateFileLoadingText(fileNumber, 'Parsing content...');
+            let parsed;
+
+            const contentType = response.headers.get('content-type') || '';
+            const urlLower = url.toLowerCase();
+            
+            if (contentType.includes('json') || urlLower.includes('.json') || content.trim().startsWith('{')) {
+                this.updateFileLoadingText(fileNumber, 'Parsing JSON...');
+                parsed = JSON.parse(content);
+            } else if (contentType.includes('yaml') || contentType.includes('yml') || 
+                       urlLower.includes('.yaml') || urlLower.includes('.yml') || 
+                       content.includes('openapi:') || content.includes('swagger:')) {
+                this.updateFileLoadingText(fileNumber, 'Parsing YAML...');
+                parsed = jsyaml.load(content);
+            } else {
+                try {
+                    parsed = JSON.parse(content);
+                } catch {
+                    try {
+                        parsed = jsyaml.load(content);
+                    } catch {
+                        throw new Error('Could not parse content as JSON or YAML');
+                    }
+                }
+            }
+
+            if (fileNumber === 1) {
+                this.spec1 = parsed;
+            } else {
+                this.spec2 = parsed;
+            }
+
+            this.hideFileLoading(fileNumber);
+            this.updateUrlInfo(url, fileNumber, parsed);
+            this.updateCompareButton();
+            
+            urlInput.value = '';
+            
+        } catch (error) {
+            this.hideFileLoading(fileNumber);
+            alert(`Error fetching from URL: ${error.message}`);
+        }
+    }
+
+    isValidUrl(string) {
+        try {
+            const url = new URL(string);
+            return url.protocol === "http:" || url.protocol === "https:";
+        } catch (_) {
+            return false;
+        }
     }
 
     countPaths(spec) {
@@ -2095,20 +2242,51 @@ class OpenAPIDiff {
 
     showFileLoading(fileNumber, text = 'Processing file...') {
         const loadingElement = document.getElementById(`loading${fileNumber}`);
-        const textElement = loadingElement.querySelector('.loading-text');
-        textElement.textContent = text;
-        loadingElement.style.display = 'block';
+        const urlLoadingElement = document.getElementById(`urlLoading${fileNumber}`);
+        
+        if (loadingElement) {
+            const textElement = loadingElement.querySelector('.loading-text');
+            textElement.textContent = text;
+            loadingElement.style.display = 'block';
+        }
+        
+        if (urlLoadingElement) {
+            const textElement = urlLoadingElement.querySelector('.loading-text');
+            textElement.textContent = text;
+            urlLoadingElement.style.display = 'block';
+        }
     }
     
     hideFileLoading(fileNumber) {
         const loadingElement = document.getElementById(`loading${fileNumber}`);
-        loadingElement.style.display = 'none';
+        const urlLoadingElement = document.getElementById(`urlLoading${fileNumber}`);
+        
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
+        
+        if (urlLoadingElement) {
+            urlLoadingElement.style.display = 'none';
+        }
     }
     
     updateFileLoadingText(fileNumber, text) {
         const loadingElement = document.getElementById(`loading${fileNumber}`);
-        const textElement = loadingElement.querySelector('.loading-text');
-        textElement.textContent = text;
+        const urlLoadingElement = document.getElementById(`urlLoading${fileNumber}`);
+        
+        if (loadingElement) {
+            const textElement = loadingElement.querySelector('.loading-text');
+            if (textElement) {
+                textElement.textContent = text;
+            }
+        }
+        
+        if (urlLoadingElement) {
+            const textElement = urlLoadingElement.querySelector('.loading-text');
+            if (textElement) {
+                textElement.textContent = text;
+            }
+        }
     }
     
     showComparisonProgress() {
