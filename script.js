@@ -22,7 +22,15 @@ class OpenAPIDiff {
             const uploadArea = document.getElementById(id);
             const fileInput = document.getElementById(`file${index + 1}`);
             
-            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('click', (e) => {
+                // Don't trigger file input if clicking on URL input or button
+                if (e.target.classList.contains('url-input') || 
+                    e.target.classList.contains('url-fetch-btn') ||
+                    e.target.closest('.url-input-section')) {
+                    return;
+                }
+                fileInput.click();
+            });
             uploadArea.addEventListener('dragover', this.handleDragOver);
             uploadArea.addEventListener('dragleave', this.handleDragLeave);
             uploadArea.addEventListener('drop', (e) => this.handleDrop(e, index + 1));
@@ -55,6 +63,15 @@ class OpenAPIDiff {
         // URL input event handlers
         ['url1', 'url2'].forEach((id, index) => {
             const urlInput = document.getElementById(id);
+<<<<<<< HEAD
+=======
+            
+            // Prevent parent click handler when focusing/clicking URL input
+            urlInput.addEventListener('click', (e) => e.stopPropagation());
+            urlInput.addEventListener('focus', (e) => e.stopPropagation());
+            
+            // Enter key support
+>>>>>>> refs/remotes/origin/main
             urlInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') this.fetchFromUrl(index + 1);
             });
@@ -183,6 +200,10 @@ class OpenAPIDiff {
         }
     }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> refs/remotes/origin/main
     async fetchFromUrl(fileNumber) {
         const urlInput = document.getElementById(`url${fileNumber}`);
         const url = urlInput.value.trim();
@@ -202,6 +223,10 @@ class OpenAPIDiff {
         try {
             this.updateFileLoadingText(fileNumber, 'Downloading specification...');
             
+<<<<<<< HEAD
+=======
+            // Fetch the content from the URL
+>>>>>>> refs/remotes/origin/main
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -215,10 +240,18 @@ class OpenAPIDiff {
 
             this.updateFileLoadingText(fileNumber, 'Reading response...');
             const content = await response.text();
+<<<<<<< HEAD
+=======
+            const contentLength = content.length;
+>>>>>>> refs/remotes/origin/main
 
             this.updateFileLoadingText(fileNumber, 'Parsing content...');
             let parsed;
 
+<<<<<<< HEAD
+=======
+            // Try to determine format and parse accordingly
+>>>>>>> refs/remotes/origin/main
             const contentType = response.headers.get('content-type') || '';
             const urlLower = url.toLowerCase();
             
@@ -231,6 +264,7 @@ class OpenAPIDiff {
                 this.updateFileLoadingText(fileNumber, 'Parsing YAML...');
                 parsed = jsyaml.load(content);
             } else {
+<<<<<<< HEAD
                 try {
                     parsed = JSON.parse(content);
                 } catch {
@@ -242,6 +276,28 @@ class OpenAPIDiff {
                 }
             }
 
+=======
+                // Try JSON first, then YAML
+                try {
+                    parsed = JSON.parse(content);
+                } catch {
+                    parsed = jsyaml.load(content);
+                }
+            }
+
+            this.updateFileLoadingText(fileNumber, 'Validating OpenAPI specification...');
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Basic validation
+            if (!parsed || typeof parsed !== 'object') {
+                throw new Error('Invalid OpenAPI specification format');
+            }
+
+            if (!parsed.openapi && !parsed.swagger) {
+                throw new Error('Not a valid OpenAPI/Swagger specification (missing openapi or swagger field)');
+            }
+
+>>>>>>> refs/remotes/origin/main
             if (fileNumber === 1) {
                 this.spec1 = parsed;
             } else {
@@ -252,19 +308,43 @@ class OpenAPIDiff {
             this.updateUrlInfo(url, fileNumber, parsed);
             this.updateCompareButton();
             
+<<<<<<< HEAD
             urlInput.value = '';
             
         } catch (error) {
             this.hideFileLoading(fileNumber);
             alert(`Error fetching from URL: ${error.message}`);
+=======
+            // Clear the URL input after successful fetch
+            urlInput.value = '';
+
+        } catch (error) {
+            this.hideFileLoading(fileNumber);
+            
+            let errorMessage = 'Error fetching URL: ';
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage += 'Network error or CORS policy. The URL might not allow cross-origin requests.';
+            } else if (error.name === 'SyntaxError') {
+                errorMessage += 'Invalid JSON/YAML format in the response.';
+            } else {
+                errorMessage += error.message;
+            }
+            
+            alert(errorMessage);
+>>>>>>> refs/remotes/origin/main
         }
     }
 
     isValidUrl(string) {
         try {
             const url = new URL(string);
+<<<<<<< HEAD
             return url.protocol === "http:" || url.protocol === "https:";
         } catch (_) {
+=======
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch {
+>>>>>>> refs/remotes/origin/main
             return false;
         }
     }
