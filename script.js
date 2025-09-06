@@ -1350,16 +1350,218 @@ class OpenAPIDiff {
         document.getElementById('addedItems').textContent = stats.added;
         document.getElementById('removedItems').textContent = stats.removed;
         document.getElementById('modifiedItems').textContent = stats.modified;
+        
+        // Update version suggestion
+        this.updateVersionSuggestion(stats.suggestedVersion);
+    }
+
+    updateVersionSuggestion(versionInfo) {
+        const suggestionEl = document.getElementById('versionSuggestion');
+        const badgeEl = document.getElementById('versionBadge');
+        const descriptionEl = document.getElementById('versionDescription');
+        const changeListEl = document.getElementById('versionChangeList');
+        
+        if (!versionInfo || versionInfo.level === 'none') {
+            suggestionEl.style.display = 'none';
+            return;
+        }
+
+        // Show the suggestion section
+        suggestionEl.style.display = 'block';
+        
+        // Update badge
+        badgeEl.textContent = versionInfo.level.toUpperCase();
+        badgeEl.className = `version-badge ${versionInfo.level}`;
+        
+        // Update description
+        descriptionEl.textContent = `${versionInfo.suggestion} - ${versionInfo.description}`;
+        
+        // Update change list
+        changeListEl.innerHTML = '';
+        if (versionInfo.details && versionInfo.details.length > 0) {
+            versionInfo.details.forEach(detail => {
+                const changeItem = document.createElement('div');
+                changeItem.className = 'version-change-item';
+                
+                changeItem.innerHTML = `
+                    <div class="version-change-type">${detail.type}</div>
+                    ${detail.path ? `<div class="version-change-path">${detail.path}</div>` : ''}
+                    <div class="version-change-description">${detail.description}</div>
+                `;
+                
+                changeListEl.appendChild(changeItem);
+            });
+        }
     }
 
     calculateStatistics() {
-        return {
+        const stats = {
             total: this.changes.length,
             breaking: this.changes.filter(c => c.isBreaking).length,
             added: this.changes.filter(c => c.category === 'added').length,
             removed: this.changes.filter(c => c.category === 'removed').length,
             modified: this.changes.filter(c => c.category === 'modified').length
         };
+        
+        // Add semantic versioning suggestion
+        stats.suggestedVersion = this.calculateSemanticVersion();
+        
+        return stats;
+    }
+
+    calculateSemanticVersion() {
+        if (this.changes.length === 0) {
+            return {
+                level: 'none',
+                suggestion: 'No changes detected',
+                description: 'No version bump needed'
+            };
+        }
+
+        // Check for breaking changes (MAJOR version)
+        const breakingChanges = this.changes.filter(c => c.isBreaking);
+        if (breakingChanges.length > 0) {
+            return {
+                level: 'major',
+                suggestion: 'Major version bump (X.y.z)',
+                description: `${breakingChanges.length} breaking change${breakingChanges.length > 1 ? 's' : ''} detected`,
+                details: this.getBreakingChangeDetails(breakingChanges)
+            };
+        }
+
+        // Check for new functionality (MINOR version)
+        const addedFeatures = this.changes.filter(c => this.isFeatureAddition(c));
+        if (addedFeatures.length > 0) {
+            return {
+                level: 'minor',
+                suggestion: 'Minor version bump (x.Y.z)',
+                description: `${addedFeatures.length} new feature${addedFeatures.length > 1 ? 's' : ''} added`,
+                details: this.getFeatureAdditionDetails(addedFeatures)
+            };
+        }
+
+        // Everything else is PATCH (bug fixes, documentation, etc.)
+        const patchChanges = this.changes.filter(c => this.isPatchChange(c));
+        if (patchChanges.length > 0) {
+            return {
+                level: 'patch',
+                suggestion: 'Patch version bump (x.y.Z)',
+                description: `${patchChanges.length} patch-level change${patchChanges.length > 1 ? 's' : ''} detected`,
+                details: this.getPatchChangeDetails(patchChanges)
+            };
+        }
+
+        return {
+            level: 'patch',
+            suggestion: 'Patch version bump (x.y.Z)',
+            description: 'Minor changes detected',
+            details: []
+        };
+    }
+
+    isFeatureAddition(change) {
+        // Feature additions that warrant a minor version bump
+        const featureTypes = [
+            'Path Added',
+            'GET Method Added',
+            'POST Method Added', 
+            'PUT Method Added',
+            'DELETE Method Added',
+            'PATCH Method Added',
+            'Schema Added',
+            'Response Added',
+            'Parameter Added' // Only if not required
+        ];
+
+        return featureTypes.includes(change.type) && !change.isBreaking;
+    }
+
+    isPatchChange(change) {
+        // Changes that are typically patch-level
+        const patchTypes = [
+            'Version Change',
+            'Title Change',
+            'Parameter Description Changed',
+            'Response Description Changed',
+            'Schema Property Description Changed',
+            'Schema Property Default Changed',
+            'Property No Longer Required' // Making things less strict
+        ];
+
+        return patchTypes.includes(change.type) || 
+               (change.category === 'modified' && !change.isBreaking);
+    }
+
+    getBreakingChangeDetails(breakingChanges) {
+        const details = breakingChanges.slice(0, 5).map(change => ({
+            type: change.type,
+            path: change.path,
+            description: this.getChangeDescription(change)
+        }));
+
+        if (breakingChanges.length > 5) {
+            details.push({
+                type: 'Additional Changes',
+                path: '',
+                description: `... and ${breakingChanges.length - 5} more breaking changes`
+            });
+        }
+
+        return details;
+    }
+
+    getFeatureAdditionDetails(addedFeatures) {
+        const details = addedFeatures.slice(0, 5).map(change => ({
+            type: change.type,
+            path: change.path,
+            description: this.getChangeDescription(change)
+        }));
+
+        if (addedFeatures.length > 5) {
+            details.push({
+                type: 'Additional Features',
+                path: '',
+                description: `... and ${addedFeatures.length - 5} more new features`
+            });
+        }
+
+        return details;
+    }
+
+    getPatchChangeDetails(patchChanges) {
+        const details = patchChanges.slice(0, 3).map(change => ({
+            type: change.type,
+            path: change.path,
+            description: this.getChangeDescription(change)
+        }));
+
+        if (patchChanges.length > 3) {
+            details.push({
+                type: 'Additional Changes',
+                path: '',
+                description: `... and ${patchChanges.length - 3} more patch changes`
+            });
+        }
+
+        return details;
+    }
+
+    getChangeDescription(change) {
+        if (change.details) {
+            if (change.details.old !== undefined && change.details.new !== undefined) {
+                return `Changed from "${change.details.old}" to "${change.details.new}"`;
+            }
+            if (change.details.methods) {
+                return `Methods: ${change.details.methods.join(', ')}`;
+            }
+            if (change.details.name) {
+                return `Parameter: ${change.details.name}`;
+            }
+            if (change.details.property) {
+                return `Property: ${change.details.property}`;
+            }
+        }
+        return change.type;
     }
 
     renderChanges(filter = 'all') {
