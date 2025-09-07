@@ -3,7 +3,8 @@ class OpenAPIDiff {
         this.spec1 = null;
         this.spec2 = null;
         this.changes = [];
-        this.compactListenersAdded = false;
+        this.originalChanges = null;
+        this.currentPathFilter = null;
         this.initializeEventListeners();
     }
 
@@ -73,6 +74,27 @@ class OpenAPIDiff {
                 if (e.key === 'Enter') this.fetchFromUrl(index + 1);
             });
         });
+        
+        // Heatmap toggle button
+        document.getElementById('heatmapToggle').addEventListener('click', () => this.toggleHeatmap());
+        
+        // Version suggestion toggle button
+        document.getElementById('versionToggle').addEventListener('click', () => this.toggleVersionDetails());
+        
+        // Advanced tools toggle
+        document.getElementById('advancedToolsToggle').addEventListener('click', () => this.toggleAdvancedTools());
+        
+        // Advanced tools buttons
+        document.getElementById('versionDetailsBtn').addEventListener('click', () => this.toggleVersionDetails());
+        document.getElementById('showHeatmapBtn').addEventListener('click', () => this.toggleHeatmap());
+        
+        // Advanced tools export buttons (compact versions)
+        document.getElementById('exportMarkdownCompact').addEventListener('click', () => this.exportMarkdownCompact());
+        document.getElementById('exportJSONCompact').addEventListener('click', () => this.exportJSONCompact());
+        document.getElementById('exportHTMLCompact').addEventListener('click', () => this.exportHTMLCompact());
+        
+        // Clear filter button (near timeline)
+        document.getElementById('clearFilter').addEventListener('click', () => this.clearPathFilter());
     }
 
     handleDragOver(e) {
@@ -1316,8 +1338,7 @@ class OpenAPIDiff {
     displayResults() {
         document.getElementById('resultsSection').style.display = 'block';
         
-        // Setup compact export listeners now that the buttons are visible
-        this.setupCompactExportListeners();
+        // Note: Compact export listeners removed - using advanced tools panel now
         
         // Update statistics
         this.updateStatistics();
@@ -1332,15 +1353,7 @@ class OpenAPIDiff {
         document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
     }
 
-    setupCompactExportListeners() {
-        // Only add listeners if they haven't been added yet
-        if (!this.compactListenersAdded) {
-            document.getElementById('exportMarkdownCompact').addEventListener('click', () => this.exportMarkdownCompact());
-            document.getElementById('exportJSONCompact').addEventListener('click', () => this.exportJSONCompact());
-            document.getElementById('exportHTMLCompact').addEventListener('click', () => this.exportHTMLCompact());
-            this.compactListenersAdded = true;
-        }
-    }
+    // Removed setupCompactExportListeners - using advanced tools panel now
 
     updateStatistics() {
         const stats = this.calculateStatistics();
@@ -1353,6 +1366,12 @@ class OpenAPIDiff {
         
         // Update version suggestion
         this.updateVersionSuggestion(stats.suggestedVersion);
+        
+        // Update compact version suggestion in advanced tools
+        this.updateCompactVersionSuggestion(stats.suggestedVersion);
+        
+        // Update heatmap
+        this.updateHeatmap();
     }
 
     updateVersionSuggestion(versionInfo) {
@@ -1361,13 +1380,13 @@ class OpenAPIDiff {
         const descriptionEl = document.getElementById('versionDescription');
         const changeListEl = document.getElementById('versionChangeList');
         
+        // Don't auto-show the full version suggestion - keep it hidden
+        // It will only be shown when user clicks "Details" from Advanced Tools
+        suggestionEl.style.display = 'none';
+        
         if (!versionInfo || versionInfo.level === 'none') {
-            suggestionEl.style.display = 'none';
             return;
         }
-
-        // Show the suggestion section
-        suggestionEl.style.display = 'block';
         
         // Update badge
         badgeEl.textContent = versionInfo.level.toUpperCase();
@@ -1392,6 +1411,427 @@ class OpenAPIDiff {
                 changeListEl.appendChild(changeItem);
             });
         }
+    }
+
+    updateCompactVersionSuggestion(versionInfo) {
+        const compactEl = document.getElementById('versionSuggestionCompact');
+        const badgeEl = document.getElementById('versionBadgeCompact');
+        const descEl = document.getElementById('versionDescriptionCompact');
+        
+        if (!versionInfo || versionInfo.level === 'none') {
+            compactEl.style.display = 'none';
+            return;
+        }
+
+        // Show the compact suggestion
+        compactEl.style.display = 'flex';
+        
+        // Update badge
+        badgeEl.textContent = versionInfo.level.toUpperCase();
+        badgeEl.className = `version-badge ${versionInfo.level}`;
+        
+        // Update description
+        descEl.textContent = versionInfo.description;
+    }
+
+    toggleHeatmap() {
+        const toggle = document.getElementById('heatmapToggle');
+        const content = document.getElementById('heatmapContent');
+        const icon = toggle.querySelector('.toggle-icon');
+        const text = toggle.querySelector('.toggle-text');
+        
+        if (content.classList.contains('collapsed')) {
+            // Show heatmap
+            content.classList.remove('collapsed');
+            toggle.classList.remove('collapsed');
+            icon.textContent = '▼';
+            text.textContent = 'Hide Heatmap';
+        } else {
+            // Hide heatmap
+            content.classList.add('collapsed');
+            toggle.classList.add('collapsed');
+            icon.textContent = '▶';
+            text.textContent = 'Show Heatmap';
+        }
+    }
+
+    toggleVersionDetails() {
+        const toggle = document.getElementById('versionToggle');
+        const details = document.getElementById('versionDetails');
+        const icon = toggle.querySelector('.toggle-icon');
+        const text = toggle.querySelector('.toggle-text');
+        
+        if (details.classList.contains('collapsed')) {
+            // Show details
+            details.classList.remove('collapsed');
+            toggle.classList.remove('collapsed');
+            icon.textContent = '▼';
+            text.textContent = 'Hide Details';
+        } else {
+            // Hide details
+            details.classList.add('collapsed');
+            toggle.classList.add('collapsed');
+            icon.textContent = '▶';
+            text.textContent = 'Show Details';
+        }
+    }
+
+    toggleAdvancedTools() {
+        const toggle = document.getElementById('advancedToolsToggle');
+        const panel = document.getElementById('advancedToolsPanel');
+        const arrow = toggle.querySelector('.toggle-arrow');
+        
+        if (panel.classList.contains('collapsed')) {
+            // Show panel
+            panel.classList.remove('collapsed');
+            toggle.classList.remove('collapsed');
+            arrow.textContent = '▼';
+        } else {
+            // Hide panel
+            panel.classList.add('collapsed');
+            toggle.classList.add('collapsed');
+            arrow.textContent = '▶';
+        }
+    }
+
+    toggleVersionDetails() {
+        const versionSection = document.getElementById('versionSuggestion');
+        const btn = document.getElementById('versionDetailsBtn');
+        
+        if (versionSection.style.display === 'none' || !versionSection.style.display) {
+            // Show the version section
+            versionSection.style.display = 'block';
+            btn.textContent = 'Hide Details';
+            
+            // Expand the details by default when showing
+            const versionDetails = document.getElementById('versionDetails');
+            const versionToggle = document.getElementById('versionToggle');
+            versionDetails.classList.remove('collapsed');
+            versionToggle.classList.remove('collapsed');
+            versionToggle.querySelector('.toggle-icon').textContent = '▼';
+            versionToggle.querySelector('.toggle-text').textContent = 'Hide Details';
+            
+            versionSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            // Hide the version section
+            versionSection.style.display = 'none';
+            btn.textContent = 'View Details';
+        }
+    }
+
+    toggleHeatmap() {
+        const heatmapSection = document.getElementById('heatmapSection');
+        const btn = document.getElementById('showHeatmapBtn');
+        
+        if (heatmapSection.style.display === 'none' || !heatmapSection.style.display) {
+            // Show the heatmap section
+            heatmapSection.style.display = 'block';
+            btn.textContent = 'Hide Heatmap';
+            
+            // Expand the heatmap by default when showing
+            const heatmapContent = document.getElementById('heatmapContent');
+            const heatmapToggle = document.getElementById('heatmapToggle');
+            heatmapContent.classList.remove('collapsed');
+            heatmapToggle.classList.remove('collapsed');
+            heatmapToggle.querySelector('.toggle-icon').textContent = '▼';
+            heatmapToggle.querySelector('.toggle-text').textContent = 'Hide Heatmap';
+            
+            heatmapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            // Hide the heatmap section
+            heatmapSection.style.display = 'none';
+            btn.textContent = 'Show Heatmap';
+        }
+    }
+
+    updateHeatmap() {
+        if (this.changes.length === 0) {
+            document.getElementById('heatmapSection').style.display = 'none';
+            return;
+        }
+
+        // Keep heatmap section hidden by default - only show when user requests it
+        document.getElementById('heatmapSection').style.display = 'none';
+        
+        // Generate heatmap data
+        const heatmapData = this.generateHeatmapData();
+        
+        // Render heatmap
+        this.renderHeatmap(heatmapData);
+        
+        // Update heatmap statistics
+        this.updateHeatmapStats(heatmapData);
+    }
+
+    generateHeatmapData() {
+        // Create a map to store path data
+        const pathMap = new Map();
+        
+        // Collect all unique paths from both specs
+        const allPaths = new Set();
+        if (this.spec1 && this.spec1.paths) {
+            Object.keys(this.spec1.paths).forEach(path => allPaths.add(path));
+        }
+        if (this.spec2 && this.spec2.paths) {
+            Object.keys(this.spec2.paths).forEach(path => allPaths.add(path));
+        }
+
+        // Initialize path data
+        allPaths.forEach(path => {
+            const spec1Methods = this.spec1 && this.spec1.paths && this.spec1.paths[path] 
+                ? Object.keys(this.spec1.paths[path]).filter(k => k !== 'parameters')
+                : [];
+            const spec2Methods = this.spec2 && this.spec2.paths && this.spec2.paths[path]
+                ? Object.keys(this.spec2.paths[path]).filter(k => k !== 'parameters')
+                : [];
+            
+            const allMethods = new Set([...spec1Methods, ...spec2Methods]);
+            
+            pathMap.set(path, {
+                path: path,
+                methods: Array.from(allMethods),
+                changes: [],
+                changeCount: 0,
+                hasBreaking: false,
+                status: this.getPathStatus(path)
+            });
+        });
+
+        // Analyze changes and assign to paths
+        this.changes.forEach(change => {
+            const pathKey = this.extractPathFromChange(change);
+            if (pathKey && pathMap.has(pathKey)) {
+                const pathData = pathMap.get(pathKey);
+                pathData.changes.push(change);
+                pathData.changeCount++;
+                if (change.isBreaking) {
+                    pathData.hasBreaking = true;
+                }
+            }
+        });
+
+        return Array.from(pathMap.values()).sort((a, b) => {
+            // Sort by change count (descending), then by path name
+            if (a.changeCount !== b.changeCount) {
+                return b.changeCount - a.changeCount;
+            }
+            return a.path.localeCompare(b.path);
+        });
+    }
+
+    extractPathFromChange(change) {
+        // Extract the API path from the change path
+        const changePath = change.path;
+        
+        // Handle different types of change paths
+        if (changePath.startsWith('/')) {
+            // Direct path change like "/pets" or "/pets/{petId}"
+            const pathParts = changePath.split('.');
+            return pathParts[0];
+        } else if (changePath.includes('paths.')) {
+            // Change path like "paths./pets.get" or similar
+            const match = changePath.match(/paths\.([^.]+)/);
+            return match ? match[1] : null;
+        } else {
+            // Try to extract from the path structure
+            const pathMatch = changePath.match(/^(\/[^.]+)/);
+            return pathMatch ? pathMatch[1] : null;
+        }
+    }
+
+    getPathStatus(path) {
+        const inSpec1 = this.spec1 && this.spec1.paths && this.spec1.paths[path];
+        const inSpec2 = this.spec2 && this.spec2.paths && this.spec2.paths[path];
+        
+        if (inSpec1 && inSpec2) return 'modified';
+        if (inSpec1 && !inSpec2) return 'removed';
+        if (!inSpec1 && inSpec2) return 'added';
+        return 'unchanged';
+    }
+
+    getChangeIntensity(changeCount) {
+        if (changeCount === 0) return 'no-changes';
+        if (changeCount <= 2) return 'low-changes';
+        if (changeCount <= 5) return 'medium-changes';
+        return 'high-changes';
+    }
+
+    renderHeatmap(heatmapData) {
+        const grid = document.getElementById('heatmapGrid');
+        grid.innerHTML = '';
+
+        heatmapData.forEach(pathData => {
+            const cell = document.createElement('div');
+            cell.className = `heatmap-cell ${this.getChangeIntensity(pathData.changeCount)}`;
+            cell.dataset.path = pathData.path;
+            
+            cell.innerHTML = `
+                <div class="heatmap-cell-path">${pathData.path}</div>
+                <div class="heatmap-cell-methods">
+                    ${pathData.methods.map(method => 
+                        `<span class="heatmap-method-tag ${method.toLowerCase()}">${method}</span>`
+                    ).join('')}
+                </div>
+                <div class="heatmap-cell-changes">
+                    ${pathData.changeCount} change${pathData.changeCount !== 1 ? 's' : ''}
+                </div>
+                ${pathData.hasBreaking ? '<div class="heatmap-cell-indicator breaking"></div>' : ''}
+            `;
+
+            // Add click event to filter timeline by path
+            cell.addEventListener('click', () => this.filterTimelineByPath(pathData.path));
+            
+            // Add hover tooltip
+            cell.title = this.generateCellTooltip(pathData);
+
+            grid.appendChild(cell);
+        });
+    }
+
+    generateCellTooltip(pathData) {
+        let tooltip = `Path: ${pathData.path}\n`;
+        tooltip += `Methods: ${pathData.methods.join(', ')}\n`;
+        tooltip += `Changes: ${pathData.changeCount}\n`;
+        
+        if (pathData.hasBreaking) {
+            tooltip += 'Contains breaking changes\n';
+        }
+        
+        if (pathData.changes.length > 0) {
+            tooltip += '\nRecent changes:\n';
+            pathData.changes.slice(0, 3).forEach(change => {
+                tooltip += `• ${change.type}\n`;
+            });
+            if (pathData.changes.length > 3) {
+                tooltip += `• ... and ${pathData.changes.length - 3} more\n`;
+            }
+        }
+        
+        return tooltip;
+    }
+
+    filterTimelineByPath(path) {
+        // Filter the timeline to show only changes for this path
+        const filteredChanges = this.changes.filter(change => {
+            const changePath = this.extractPathFromChange(change);
+            return changePath === path;
+        });
+
+        if (filteredChanges.length > 0) {
+            // Store original changes if not already stored
+            if (!this.originalChanges) {
+                this.originalChanges = [...this.changes];
+            }
+            
+            // Set current filter
+            this.currentPathFilter = path;
+            this.changes = filteredChanges;
+            
+            // Show filter status indicator
+            this.showFilterStatus(`Filtering: ${path}`, filteredChanges.length);
+            
+            // Update filter buttons to show we're filtering
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Re-render timeline with filtered changes
+            this.renderChanges();
+            
+            // Scroll to timeline
+            document.getElementById('timeline').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    clearPathFilter() {
+        if (this.originalChanges) {
+            // Restore original changes
+            this.changes = [...this.originalChanges];
+            this.originalChanges = null;
+            this.currentPathFilter = null;
+            
+            // Hide filter status indicator
+            this.hideFilterStatus();
+            
+            // Reset filter buttons to "all"
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('[data-filter="all"]').classList.add('active');
+            
+            // Re-render timeline
+            this.renderChanges();
+            
+            // Show cleared notification
+            this.showClearFilterNotification();
+        }
+    }
+
+    showFilterStatus(text, count) {
+        const statusEl = document.getElementById('filterStatus');
+        const textEl = document.getElementById('filterStatusText');
+        
+        textEl.textContent = `${text} (${count} change${count !== 1 ? 's' : ''})`;
+        statusEl.style.display = 'block';
+    }
+
+    hideFilterStatus() {
+        document.getElementById('filterStatus').style.display = 'none';
+    }
+
+
+    showClearFilterNotification() {
+        // Create and show a temporary notification
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        `;
+        notification.textContent = `Showing all changes`;
+        
+        document.body.appendChild(notification);
+        
+        // Remove notification after 2 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 2000);
+    }
+
+    updateHeatmapStats(heatmapData) {
+        const statsEl = document.getElementById('heatmapStats');
+        
+        const totalPaths = heatmapData.length;
+        const changedPaths = heatmapData.filter(p => p.changeCount > 0).length;
+        const breakingPaths = heatmapData.filter(p => p.hasBreaking).length;
+        const mostChangedPath = heatmapData.length > 0 ? heatmapData[0] : null;
+        
+        statsEl.innerHTML = `
+            <div class="heatmap-stat">
+                <span class="heatmap-stat-number">${totalPaths}</span>
+                <div class="heatmap-stat-label">Total Endpoints</div>
+            </div>
+            <div class="heatmap-stat">
+                <span class="heatmap-stat-number">${changedPaths}</span>
+                <div class="heatmap-stat-label">Modified Endpoints</div>
+            </div>
+            <div class="heatmap-stat">
+                <span class="heatmap-stat-number">${breakingPaths}</span>
+                <div class="heatmap-stat-label">With Breaking Changes</div>
+            </div>
+            <div class="heatmap-stat">
+                <span class="heatmap-stat-number">${Math.round((changedPaths / totalPaths) * 100)}%</span>
+                <div class="heatmap-stat-label">Coverage</div>
+            </div>
+        `;
     }
 
     calculateStatistics() {
@@ -1741,6 +2181,11 @@ class OpenAPIDiff {
     }
 
     filterChanges(filter) {
+        // Clear any path filter first
+        if (this.currentPathFilter) {
+            this.clearPathFilter();
+        }
+        
         // Update active filter button
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.classList.remove('active');

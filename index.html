@@ -131,7 +131,7 @@
         <div class="results-section" id="resultsSection">
             <div class="results-header">
                 <h2 class="results-title">📊 Comparison Results</h2>
-                <div class="controls">
+                <div class="main-controls">
                     <div class="filter-controls">
                         <button class="filter-btn active" data-filter="all">All Changes</button>
                         <button class="filter-btn" data-filter="breaking">Breaking</button>
@@ -139,23 +139,55 @@
                         <button class="filter-btn" data-filter="removed">Removed</button>
                         <button class="filter-btn" data-filter="modified">Modified</button>
                     </div>
-                    <div class="export-controls">
-                        <div class="export-group">
-                            <span class="export-group-label">Full Export</span>
-                            <button class="export-btn" id="exportMarkdown">📄 Markdown</button>
-                            <button class="export-btn" id="exportJSON">📊 JSON</button>
-                            <button class="export-btn" id="exportHTML">🌐 HTML</button>
+                    <button class="advanced-tools-toggle collapsed" id="advancedToolsToggle">
+                        <span class="toggle-icon">📊</span>
+                        <span class="toggle-text">Toggle Analysis & Export</span>
+                        <span class="toggle-subtitle">Version suggestions, visual heatmap, reports</span>
+                        <span class="toggle-arrow">▶</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="advanced-tools-panel collapsed" id="advancedToolsPanel">
+                <div class="advanced-tools-content">
+                    <div class="advanced-section">
+                        <h4>📦 Version Suggestion</h4>
+                        <p class="section-description">AI-powered semantic versioning recommendation</p>
+                        <div class="version-suggestion-compact" id="versionSuggestionCompact" style="display: none;">
+                            <div class="version-badge" id="versionBadgeCompact">MAJOR</div>
+                            <span class="version-description-compact" id="versionDescriptionCompact">Breaking changes detected</span>
+                            <button class="details-btn" id="versionDetailsBtn">View Details</button>
                         </div>
-                        <div class="export-group">
-                            <span class="export-group-label">Compact Export</span>
-                            <button class="export-btn compact" id="exportMarkdownCompact">📄 Markdown</button>
-                            <button class="export-btn compact" id="exportJSONCompact">📊 JSON</button>
-                            <button class="export-btn compact" id="exportHTMLCompact">🌐 HTML</button>
+                    </div>
+                    
+                    <div class="advanced-section">
+                        <h4>🔥 Coverage Heatmap</h4>
+                        <p class="section-description">Visual map of which endpoints changed</p>
+                        <button class="tool-btn" id="showHeatmapBtn">Show Heatmap</button>
+                    </div>
+                    
+                    <div class="advanced-section">
+                        <h4>📤 Export Reports</h4>
+                        <p class="section-description">Generate shareable change reports</p>
+                        <div class="export-buttons">
+                            <div class="export-group">
+                                <span class="export-group-label">Full Export</span>
+                                <button class="tool-btn" id="exportMarkdown">📄 Markdown</button>
+                                <button class="tool-btn" id="exportJSON">📋 JSON</button>
+                                <button class="tool-btn" id="exportHTML">🌐 HTML</button>
+                            </div>
+                            <div class="export-group">
+                                <span class="export-group-label">Compact Export</span>
+                                <button class="tool-btn compact" id="exportMarkdownCompact">📄 Markdown</button>
+                                <button class="tool-btn compact" id="exportJSONCompact">📋 JSON</button>
+                                <button class="tool-btn compact" id="exportHTMLCompact">🌐 HTML</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Hidden detailed panels - accessed via Advanced Tools -->
             <div class="version-suggestion" id="versionSuggestion" style="display: none;">
                 <div class="version-suggestion-header">
                     <div class="version-icon">📦</div>
@@ -163,11 +195,58 @@
                         <div class="version-title" id="versionTitle">Semantic Version Suggestion</div>
                         <div class="version-subtitle" id="versionSubtitle">Recommended version bump based on changes</div>
                     </div>
-                    <div class="version-badge" id="versionBadge">MAJOR</div>
+                    <div class="version-controls">
+                        <div class="version-badge" id="versionBadge">MAJOR</div>
+                        <button class="version-toggle collapsed" id="versionToggle">
+                            <span class="toggle-icon">▶</span>
+                            <span class="toggle-text">Show Details</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="version-details" id="versionDetails">
+                <div class="version-details collapsed" id="versionDetails">
                     <div class="version-description" id="versionDescription"></div>
                     <div class="version-change-list" id="versionChangeList"></div>
+                </div>
+            </div>
+
+            <div class="heatmap-section" id="heatmapSection" style="display: none;">
+                <div class="heatmap-header">
+                    <div class="heatmap-title">
+                        <h3>🔥 API Coverage Heatmap</h3>
+                        <p>Visual representation of which API endpoints have been modified</p>
+                    </div>
+                    <button class="heatmap-toggle collapsed" id="heatmapToggle">
+                        <span class="toggle-icon">▶</span>
+                        <span class="toggle-text">Show Heatmap</span>
+                    </button>
+                </div>
+                <div class="heatmap-content collapsed" id="heatmapContent">
+                    <div class="heatmap-legend">
+                        <div class="legend-item">
+                            <div class="legend-color no-changes"></div>
+                            <span>No changes</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color low-changes"></div>
+                            <span>1-2 changes</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color medium-changes"></div>
+                            <span>3-5 changes</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color high-changes"></div>
+                            <span>6+ changes</span>
+                        </div>
+                    </div>
+                    <div class="heatmap-container">
+                        <div class="heatmap-grid" id="heatmapGrid">
+                            <!-- Heatmap cells will be generated here -->
+                        </div>
+                    </div>
+                    <div class="heatmap-stats" id="heatmapStats">
+                        <!-- Heatmap statistics will be shown here -->
+                    </div>
                 </div>
             </div>
 
@@ -191,6 +270,19 @@
                 <div class="stat-item">
                     <span class="stat-number" id="modifiedItems">0</span>
                     <div class="stat-label">Modified</div>
+                </div>
+            </div>
+
+            <div class="filter-status" id="filterStatus" style="display: none;">
+                <div class="filter-status-content">
+                    <div class="filter-status-info">
+                        <span class="filter-status-icon">🔍</span>
+                        <span class="filter-status-text" id="filterStatusText">Showing filtered results</span>
+                    </div>
+                    <button class="clear-filter-btn" id="clearFilter">
+                        <span class="clear-icon">✕</span>
+                        <span class="clear-text">Show All Changes</span>
+                    </button>
                 </div>
             </div>
 
