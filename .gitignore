@@ -58,3 +58,18 @@ temp/
 
 # Claude Code project instructions
 CLAUDE.md
+
+# Claude Project Template — transient review comments
+docs/comments/*.md
+
+# === Template & Workflow (hidden for public repo) ===
+.mcp.json
+.claude/
+openspec/
+templates/
+docs/examples/
+docs/REQUIREMENTS.md
+docs/DOMAINMODEL.md
+docs/UXDESIGN.md
+docs/SPEC.md
+VERSION
