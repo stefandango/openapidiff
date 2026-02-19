@@ -59,6 +59,9 @@ temp/
 # Claude Code project instructions
 CLAUDE.md
 
+# Serena (MCP coding agent)
+.serena/
+
 # Claude Project Template — transient review comments
 docs/comments/*.md
 

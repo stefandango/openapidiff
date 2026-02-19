@@ -8,6 +8,16 @@ class OpenAPIDiff {
         this.initializeEventListeners();
     }
 
+    escapeHtml(str) {
+        if (!str && str !== 0) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     initializeEventListeners() {
         // Input type switching
         document.querySelectorAll('.input-type-btn').forEach(btn => {
@@ -192,8 +202,8 @@ class OpenAPIDiff {
         
         if (info) {
             info.innerHTML = `
-                <strong>${file.name}</strong><br>
-                Version: ${version}<br>
+                <strong>${this.escapeHtml(file.name)}</strong><br>
+                Version: ${this.escapeHtml(version)}<br>
                 Paths: ${pathCount}<br>
                 Size: ${(file.size / 1024).toFixed(1)} KB
             `;
@@ -210,10 +220,10 @@ class OpenAPIDiff {
         
         if (info) {
             info.innerHTML = `
-                <strong>${filename}</strong><br>
-                Version: ${version}<br>
+                <strong>${this.escapeHtml(filename)}</strong><br>
+                Version: ${this.escapeHtml(version)}<br>
                 Paths: ${pathCount}<br>
-                Source: ${urlObj.hostname}
+                Source: ${this.escapeHtml(urlObj.hostname)}
             `;
             info.style.display = 'block';
         }
@@ -1403,9 +1413,9 @@ class OpenAPIDiff {
                 changeItem.className = 'version-change-item';
                 
                 changeItem.innerHTML = `
-                    <div class="version-change-type">${detail.type}</div>
-                    ${detail.path ? `<div class="version-change-path">${detail.path}</div>` : ''}
-                    <div class="version-change-description">${detail.description}</div>
+                    <div class="version-change-type">${this.escapeHtml(detail.type)}</div>
+                    ${detail.path ? `<div class="version-change-path">${this.escapeHtml(detail.path)}</div>` : ''}
+                    <div class="version-change-description">${this.escapeHtml(detail.description)}</div>
                 `;
                 
                 changeListEl.appendChild(changeItem);
@@ -1666,10 +1676,10 @@ class OpenAPIDiff {
             cell.dataset.path = pathData.path;
             
             cell.innerHTML = `
-                <div class="heatmap-cell-path">${pathData.path}</div>
+                <div class="heatmap-cell-path">${this.escapeHtml(pathData.path)}</div>
                 <div class="heatmap-cell-methods">
                     ${pathData.methods.map(method => 
-                        `<span class="heatmap-method-tag ${method.toLowerCase()}">${method}</span>`
+                        `<span class="heatmap-method-tag ${this.escapeHtml(method.toLowerCase())}">${this.escapeHtml(method)}</span>`
                     ).join('')}
                 </div>
                 <div class="heatmap-cell-changes">
@@ -2038,8 +2048,8 @@ class OpenAPIDiff {
             <div class="change-item" data-category="${change.category}" data-breaking="${change.isBreaking}">
                 <div class="change-header">
                     <div>
-                        <div class="change-type">${change.type}</div>
-                        <div class="change-path">${change.path}</div>
+                        <div class="change-type">${this.escapeHtml(change.type)}</div>
+                        <div class="change-path">${this.escapeHtml(change.path)}</div>
                     </div>
                     <div class="change-badge ${badgeClass}">
                         ${change.isBreaking ? 'Breaking' : change.category}
@@ -2083,7 +2093,7 @@ class OpenAPIDiff {
                 <div class="detail-section">
                     <div class="detail-title">HTTP Methods:</div>
                     <div class="detail-content">
-                        ${change.details.methods.map(m => m.toUpperCase()).join(', ')}
+                        ${change.details.methods.map(m => this.escapeHtml(m.toUpperCase())).join(', ')}
                     </div>
                 </div>
             `;
@@ -2093,7 +2103,7 @@ class OpenAPIDiff {
             detailsHtml += `
                 <div class="detail-section">
                     <div class="detail-title">Method:</div>
-                    <div class="detail-content">${change.details.method.toUpperCase()}</div>
+                    <div class="detail-content">${this.escapeHtml(change.details.method.toUpperCase())}</div>
                 </div>
             `;
         }
@@ -2102,7 +2112,7 @@ class OpenAPIDiff {
             detailsHtml += `
                 <div class="detail-section">
                     <div class="detail-title">Summary:</div>
-                    <div class="detail-content">${change.details.summary}</div>
+                    <div class="detail-content">${this.escapeHtml(change.details.summary)}</div>
                 </div>
             `;
         }
@@ -2111,7 +2121,7 @@ class OpenAPIDiff {
             detailsHtml += `
                 <div class="detail-section">
                     <div class="detail-title">Status Code:</div>
-                    <div class="detail-content">${change.details.statusCode}</div>
+                    <div class="detail-content">${this.escapeHtml(change.details.statusCode)}</div>
                 </div>
             `;
         }
@@ -2121,9 +2131,9 @@ class OpenAPIDiff {
                 <div class="detail-section">
                     <div class="detail-title">Parameter:</div>
                     <div class="detail-content">
-                        <strong>${change.details.name}</strong> (${change.details.in || 'unknown'})
+                        <strong>${this.escapeHtml(change.details.name)}</strong> (${this.escapeHtml(change.details.in || 'unknown')})
                         ${change.details.required ? ' - Required' : ' - Optional'}
-                        ${change.details.type ? ` - Type: ${change.details.type}` : ''}
+                        ${change.details.type ? ` - Type: ${this.escapeHtml(change.details.type)}` : ''}
                     </div>
                 </div>
             `;
@@ -2134,8 +2144,8 @@ class OpenAPIDiff {
                 <div class="detail-section">
                     <div class="detail-title">Property:</div>
                     <div class="detail-content">
-                        <strong>${change.details.property}</strong>
-                        ${change.details.type ? ` (${change.details.type})` : ''}
+                        <strong>${this.escapeHtml(change.details.property)}</strong>
+                        ${change.details.type ? ` (${this.escapeHtml(change.details.type)})` : ''}
                         ${change.details.isRequired ? ' - Required' : ''}
                         ${change.details.wasRequired ? ' - Was Required' : ''}
                     </div>
@@ -2147,7 +2157,7 @@ class OpenAPIDiff {
             detailsHtml += `
                 <div class="detail-section">
                     <div class="detail-title">Schema:</div>
-                    <div class="detail-content">${change.details.schemaName}</div>
+                    <div class="detail-content">${this.escapeHtml(change.details.schemaName)}</div>
                 </div>
             `;
         }
@@ -2156,7 +2166,7 @@ class OpenAPIDiff {
             detailsHtml += `
                 <div class="detail-section">
                     <div class="detail-title">Description:</div>
-                    <div class="detail-content">${change.details.description}</div>
+                    <div class="detail-content">${this.escapeHtml(change.details.description)}</div>
                 </div>
             `;
         }
@@ -2175,9 +2185,9 @@ class OpenAPIDiff {
     }
 
     formatValue(value) {
-        if (typeof value === 'string') return `"${value}"`;
-        if (typeof value === 'object') return JSON.stringify(value, null, 2);
-        return String(value);
+        if (typeof value === 'string') return this.escapeHtml(`"${value}"`);
+        if (typeof value === 'object') return this.escapeHtml(JSON.stringify(value, null, 2));
+        return this.escapeHtml(String(value));
     }
 
     filterChanges(filter) {
@@ -2901,8 +2911,8 @@ class OpenAPIDiff {
         let html = `<div class="change ${changeClass}">
             <div class="change-header">
                 <div>
-                    <div class="change-type">${change.type}</div>
-                    <div class="change-path">${change.path}</div>
+                    <div class="change-type">${this.escapeHtml(change.type)}</div>
+                    <div class="change-path">${this.escapeHtml(change.path)}</div>
                 </div>
                 <span class="badge ${badgeClass}">
                     ${change.isBreaking ? 'Breaking' : change.category}
@@ -2914,7 +2924,7 @@ class OpenAPIDiff {
             Object.keys(change.details).forEach(key => {
                 const value = change.details[key];
                 if (value !== undefined && value !== null) {
-                    html += `<div><strong>${key}:</strong> ${typeof value === 'object' ? JSON.stringify(value) : value}</div>`;
+                    html += `<div><strong>${this.escapeHtml(key)}:</strong> ${this.escapeHtml(typeof value === 'object' ? JSON.stringify(value) : value)}</div>`;
                 }
             });
             html += `</div>`;
