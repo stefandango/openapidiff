@@ -2827,8 +2827,8 @@ class OpenAPIDiff {
                 <h3>⚠️ Breaking Changes (${breakingChanges.length})</h3>`;
             breakingChanges.forEach(change => {
                 html += `<div class="change-item">
-                    <span class="change-type">${change.type}</span>
-                    <span class="change-path">${change.path}</span>
+                    <span class="change-type">${this.escapeHtml(change.type)}</span>
+                    <span class="change-path">${this.escapeHtml(change.path)}</span>
                 </div>`;
             });
             html += `</div>`;
@@ -2841,8 +2841,8 @@ class OpenAPIDiff {
                 <h3>➕ Added (${addedChanges.length})</h3>`;
             addedChanges.forEach(change => {
                 html += `<div class="change-item">
-                    <span class="change-type">${change.type}</span>
-                    <span class="change-path">${change.path}</span>
+                    <span class="change-type">${this.escapeHtml(change.type)}</span>
+                    <span class="change-path">${this.escapeHtml(change.path)}</span>
                 </div>`;
             });
             html += `</div>`;
@@ -2855,8 +2855,8 @@ class OpenAPIDiff {
                 <h3>➖ Removed (${removedChanges.length})</h3>`;
             removedChanges.forEach(change => {
                 html += `<div class="change-item">
-                    <span class="change-type">${change.type}</span>
-                    <span class="change-path">${change.path}</span>
+                    <span class="change-type">${this.escapeHtml(change.type)}</span>
+                    <span class="change-path">${this.escapeHtml(change.path)}</span>
                 </div>`;
             });
             html += `</div>`;
@@ -2869,8 +2869,8 @@ class OpenAPIDiff {
                 <h3>🔄 Modified (${modifiedChanges.length})</h3>`;
             modifiedChanges.forEach(change => {
                 html += `<div class="change-item">
-                    <span class="change-type">${change.type}</span>
-                    <span class="change-path">${change.path}</span>
+                    <span class="change-type">${this.escapeHtml(change.type)}</span>
+                    <span class="change-path">${this.escapeHtml(change.path)}</span>
                 </div>`;
             });
             html += `</div>`;
