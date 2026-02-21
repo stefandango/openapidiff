@@ -171,6 +171,15 @@ class OpenAPIDiff {
             this.updateFileLoadingText(fileNumber, 'Validating structure...');
             await new Promise(resolve => setTimeout(resolve, 200));
 
+            // Validate that the parsed content is a valid OpenAPI/Swagger spec
+            if (!parsed || typeof parsed !== 'object') {
+                throw new Error('Invalid OpenAPI specification format');
+            }
+
+            if (!parsed.openapi && !parsed.swagger) {
+                throw new Error('Not a valid OpenAPI/Swagger specification (missing openapi or swagger field)');
+            }
+
             if (fileNumber === 1) {
                 this.spec1 = parsed;
             } else {
