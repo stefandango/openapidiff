@@ -54,7 +54,7 @@ jobs:
         rm index_temp.html
         
         # Copy processed static files to server
-        scp index_processed.html styles.css script.js ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/projects/hetzner-infrastructure/projects/openapidiff-static/html/
+        scp index_processed.html styles.css comparison-engine.js script.js ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/projects/hetzner-infrastructure/projects/openapidiff-static/html/
         
         # Rename the processed file on server to index.html
         ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "cd /opt/projects/hetzner-infrastructure/projects/openapidiff-static/html && mv index_processed.html index.html"
