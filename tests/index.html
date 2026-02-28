@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAPI Diff — Tests</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #f8fafc;
+        }
+        .summary {
+            font-size: 1.1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        .summary.pass { background: #064e3b; color: #6ee7b7; }
+        .summary.fail { background: #7f1d1d; color: #fca5a5; }
+        .suite {
+            background: #1e293b;
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .suite h2 {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+        .test {
+            padding: 0.3rem 0;
+            font-size: 0.9rem;
+        }
+        .test.pass { color: #6ee7b7; }
+        .test.fail { color: #fca5a5; }
+        .error-detail {
+            background: #1a1a2e;
+            color: #f87171;
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0 0.5rem 1.25rem;
+            border-radius: 0.25rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>OpenAPI Diff — Test Suite</h1>
+    <div id="test-summary"></div>
+    <div id="test-results"></div>
+
+    <script src="../comparison-engine.js"></script>
+    <script src="test-runner.js"></script>
+    <script src="comparison-engine.test.js"></script>
+    <script>runner.run();</script>
+</body>
+</html>
