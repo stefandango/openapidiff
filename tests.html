@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAPI Diff — Tests</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #f8fafc;
+        }
+        .summary {
+            font-size: 1.1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        .summary.pass { background: #064e3b; color: #6ee7b7; }
+        .summary.fail { background: #7f1d1d; color: #fca5a5; }
+        .suite {
+            background: #1e293b;
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .suite h2 {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+        .test {
+            padding: 0.3rem 0;
+            font-size: 0.9rem;
+        }
+        .test.pass { color: #6ee7b7; }
+        .test.fail { color: #fca5a5; }
+        .error-detail {
+            background: #1a1a2e;
+            color: #f87171;
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0 0.5rem 1.25rem;
+            border-radius: 0.25rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>OpenAPI Diff — Test Suite</h1>
+    <div id="test-summary"></div>
+    <div id="test-results"></div>
+
+    <!-- Load comparison engine from same directory -->
+    <script src="comparison-engine.js"></script>
+
+    <!-- Inline test runner -->
+    <script>
+    /**
+     * Minimal browser-based test runner.
+     *
+     * Provides describe/it/assert primitives and renders results into the DOM.
+     */
+    class TestRunner {
+        constructor() {
+            this.suites = [];
+            this.passed = 0;
+            this.failed = 0;
+            this.errors = [];
+        }
+
+        describe(name, fn) {
+            this.suites.push({ name, fn });
+        }
+
+        run() {
+            const container = document.getElementById('test-results');
+            if (!container) {
+                console.error('Missing #test-results element');
+                return;
+            }
+
+            for (const suite of this.suites) {
+                const section = document.createElement('div');
+                section.className = 'suite';
+
+                const heading = document.createElement('h2');
+                heading.textContent = suite.name;
+                section.appendChild(heading);
+
+                const tests = [];
+                const it = (name, fn) => tests.push({ name, fn });
+
+                suite.fn(it);
+
+                for (const test of tests) {
+                    const result = document.createElement('div');
+                    result.className = 'test';
+
+                    try {
+                        test.fn();
+                        this.passed++;
+                        result.classList.add('pass');
+                        result.textContent = `✓ ${test.name}`;
+                    } catch (err) {
+                        this.failed++;
+                        result.classList.add('fail');
+                        this.errors.push({ suite: suite.name, test: test.name, error: err });
+
+                        const label = document.createElement('span');
+                        label.textContent = `✗ ${test.name}`;
+                        result.appendChild(label);
+
+                        const detail = document.createElement('pre');
+                        detail.className = 'error-detail';
+                        detail.textContent = err.message;
+                        result.appendChild(detail);
+                    }
+
+                    section.appendChild(result);
+                }
+
+                container.appendChild(section);
+            }
+
+            this.renderSummary();
+        }
+
+        renderSummary() {
+            const total = this.passed + this.failed;
+            const summary = document.getElementById('test-summary');
+            if (!summary) return;
+
+            summary.textContent = `${total} tests — ${this.passed} passed, ${this.failed} failed`;
+            summary.className = this.failed > 0 ? 'summary fail' : 'summary pass';
+        }
+    }
+
+    const assert = {
+        equal(actual, expected, msg) {
+            if (actual !== expected) {
+                throw new Error(
+                    (msg ? msg + ': ' : '') +
+                    `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+                );
+            }
+        },
+
+        notEqual(actual, expected, msg) {
+            if (actual === expected) {
+                throw new Error(
+                    (msg ? msg + ': ' : '') +
+                    `expected value to differ from ${JSON.stringify(expected)}`
+                );
+            }
+        },
+
+        ok(value, msg) {
+            if (!value) {
+                throw new Error(msg || `expected truthy value, got ${JSON.stringify(value)}`);
+            }
+        },
+
+        deepEqual(actual, expected, msg) {
+            const a = JSON.stringify(actual);
+            const e = JSON.stringify(expected);
+            if (a !== e) {
+                throw new Error(
+                    (msg ? msg + ': ' : '') +
+                    `expected ${e}, got ${a}`
+                );
+            }
+        },
+
+        includes(array, item, msg) {
+            if (!Array.isArray(array) || !array.includes(item)) {
+                throw new Error(
+                    (msg ? msg + ': ' : '') +
+                    `expected array to include ${JSON.stringify(item)}`
+                );
+            }
+        },
+
+        hasProperty(obj, prop, msg) {
+            if (!(prop in obj)) {
+                throw new Error(
+                    (msg ? msg + ': ' : '') +
+                    `expected object to have property "${prop}"`
+                );
+            }
+        }
+    };
+
+    const runner = new TestRunner();
+    function describe(name, fn) { runner.describe(name, fn); }
+    </script>
+
+    <!-- Inline test suite -->
+    <script>
+    /**
+     * Unit tests for ComparisonEngine.
+     *
+     * Each describe block maps to a requirement area from the comparison-engine spec.
+     * Tests create minimal OpenAPI spec objects and assert on the change output.
+     */
+
+    function makeSpec(overrides = {}) {
+        return Object.assign({
+            openapi: '3.0.0',
+            info: { title: 'Test API', version: '1.0.0' },
+            paths: {},
+            components: { schemas: {} }
+        }, overrides);
+    }
+
+    function diff(spec1, spec2) {
+        const engine = new ComparisonEngine(spec1, spec2);
+        return engine.compare();
+    }
+
+    function findChange(changes, predicate) {
+        return changes.find(predicate);
+    }
+
+    // 3a. Info comparison
+
+    describe('Info comparison', (it) => {
+        it('detects version change', () => {
+            const changes = diff(
+                makeSpec({ info: { title: 'API', version: '1.0.0' } }),
+                makeSpec({ info: { title: 'API', version: '2.0.0' } })
+            );
+            const c = findChange(changes, c => c.type === 'Version Change');
+            assert.ok(c, 'should produce a Version Change');
+            assert.equal(c.category, 'modified');
+            assert.equal(c.details.old, '1.0.0');
+            assert.equal(c.details.new, '2.0.0');
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('detects title change', () => {
+            const changes = diff(
+                makeSpec({ info: { title: 'Old Title', version: '1.0.0' } }),
+                makeSpec({ info: { title: 'New Title', version: '1.0.0' } })
+            );
+            const c = findChange(changes, c => c.type === 'Title Change');
+            assert.ok(c, 'should produce a Title Change');
+            assert.equal(c.category, 'modified');
+            assert.equal(c.details.old, 'Old Title');
+            assert.equal(c.details.new, 'New Title');
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('produces no changes when info is identical', () => {
+            const spec = makeSpec({ info: { title: 'Same', version: '1.0.0' } });
+            const changes = diff(spec, spec);
+            const infoChanges = changes.filter(c => c.path.startsWith('info.'));
+            assert.equal(infoChanges.length, 0, 'should have no info changes');
+        });
+    });
+
+    // 3b. Path comparison
+
+    describe('Path comparison', (it) => {
+        it('detects path added', () => {
+            const changes = diff(
+                makeSpec({ paths: {} }),
+                makeSpec({ paths: { '/users': { get: { responses: { '200': {} } } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Path Added');
+            assert.ok(c, 'should produce a Path Added change');
+            assert.equal(c.path, '/users');
+            assert.equal(c.category, 'added');
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('detects path removed and marks as breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: { responses: { '200': {} } } } } }),
+                makeSpec({ paths: {} })
+            );
+            const c = findChange(changes, c => c.type === 'Path Removed');
+            assert.ok(c, 'should produce a Path Removed change');
+            assert.equal(c.path, '/users');
+            assert.equal(c.category, 'removed');
+            assert.equal(c.isBreaking, true);
+        });
+
+        it('does not flag shared paths as added or removed', () => {
+            const spec = makeSpec({ paths: { '/users': { get: { responses: { '200': {} } } } } });
+            const changes = diff(spec, spec);
+            const pathChanges = changes.filter(c => c.type === 'Path Added' || c.type === 'Path Removed');
+            assert.equal(pathChanges.length, 0);
+        });
+    });
+
+    // 3c. HTTP method comparison
+
+    describe('HTTP method comparison', (it) => {
+        it('detects method added to existing path', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: { responses: {} } } } }),
+                makeSpec({ paths: { '/users': { get: { responses: {} }, post: { responses: {} } } } })
+            );
+            const c = findChange(changes, c => c.type === 'POST Method Added');
+            assert.ok(c, 'should produce a POST Method Added change');
+            assert.equal(c.path, '/users');
+            assert.equal(c.category, 'added');
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('detects method removed and marks as breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: { responses: {} }, delete: { responses: {} } } } }),
+                makeSpec({ paths: { '/users': { get: { responses: {} } } } })
+            );
+            const c = findChange(changes, c => c.type === 'DELETE Method Removed');
+            assert.ok(c, 'should produce a DELETE Method Removed change');
+            assert.equal(c.path, '/users');
+            assert.equal(c.category, 'removed');
+            assert.equal(c.isBreaking, true);
+        });
+    });
+
+    // 3d. Parameter comparison
+
+    describe('Parameter comparison', (it) => {
+        it('detects required parameter added and marks as breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: { parameters: [], responses: {} } } } }),
+                makeSpec({ paths: { '/users': { get: {
+                    parameters: [{ name: 'filter', in: 'query', required: true, schema: { type: 'string' } }],
+                    responses: {}
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Parameter Added' && c.details.name === 'filter');
+            assert.ok(c, 'should produce a Parameter Added change');
+            assert.equal(c.category, 'added');
+            assert.equal(c.isBreaking, true, 'required param addition is breaking');
+        });
+
+        it('detects optional parameter added as non-breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: { parameters: [], responses: {} } } } }),
+                makeSpec({ paths: { '/users': { get: {
+                    parameters: [{ name: 'page', in: 'query', required: false, schema: { type: 'integer' } }],
+                    responses: {}
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Parameter Added' && c.details.name === 'page');
+            assert.ok(c, 'should produce a Parameter Added change');
+            assert.equal(c.isBreaking, false, 'optional param addition is not breaking');
+        });
+
+        it('detects parameter removed and marks required removal as breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: {
+                    parameters: [{ name: 'id', in: 'query', required: true, schema: { type: 'string' } }],
+                    responses: {}
+                } } } }),
+                makeSpec({ paths: { '/users': { get: { parameters: [], responses: {} } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Parameter Removed' && c.details.name === 'id');
+            assert.ok(c, 'should produce a Parameter Removed change');
+            assert.equal(c.category, 'removed');
+            assert.equal(c.isBreaking, true);
+        });
+
+        it('detects parameter detail modification', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: {
+                    parameters: [{ name: 'id', in: 'query', required: false, schema: { type: 'string' } }],
+                    responses: {}
+                } } } }),
+                makeSpec({ paths: { '/users': { get: {
+                    parameters: [{ name: 'id', in: 'query', required: true, schema: { type: 'string' } }],
+                    responses: {}
+                } } } })
+            );
+            const c = findChange(changes, c =>
+                c.path.includes('id') && c.category === 'modified'
+            );
+            assert.ok(c, 'should produce a modified change for the parameter');
+        });
+    });
+
+    // 3e. Request body comparison
+
+    describe('Request body comparison', (it) => {
+        it('detects request body added', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { post: { responses: {} } } } }),
+                makeSpec({ paths: { '/users': { post: {
+                    requestBody: { required: false, content: {} },
+                    responses: {}
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Request Body Added');
+            assert.ok(c, 'should produce a Request Body Added change');
+            assert.equal(c.category, 'added');
+        });
+
+        it('detects request body removed and marks as breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { post: {
+                    requestBody: { required: true, content: {} },
+                    responses: {}
+                } } } }),
+                makeSpec({ paths: { '/users': { post: { responses: {} } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Request Body Removed');
+            assert.ok(c, 'should produce a Request Body Removed change');
+            assert.equal(c.category, 'removed');
+            assert.equal(c.isBreaking, true);
+        });
+    });
+
+    // 3f. Response comparison
+
+    describe('Response comparison', (it) => {
+        it('detects response status code removed and marks as breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: {
+                    responses: { '200': { description: 'OK' }, '404': { description: 'Not found' } }
+                } } } }),
+                makeSpec({ paths: { '/users': { get: {
+                    responses: { '200': { description: 'OK' } }
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Response Removed');
+            assert.ok(c, 'should produce a Response Removed change');
+            assert.equal(c.category, 'removed');
+            assert.equal(c.isBreaking, true);
+            assert.equal(c.details.statusCode, '404');
+        });
+
+        it('detects response added as non-breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/users': { get: {
+                    responses: { '200': { description: 'OK' } }
+                } } } }),
+                makeSpec({ paths: { '/users': { get: {
+                    responses: { '200': { description: 'OK' }, '201': { description: 'Created' } }
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Response Added');
+            assert.ok(c, 'should produce a Response Added change');
+            assert.equal(c.category, 'added');
+            assert.equal(c.isBreaking, false);
+        });
+    });
+
+    // 3g. Component schema comparison
+
+    describe('Component schema comparison', (it) => {
+        it('detects schema added to components', () => {
+            const changes = diff(
+                makeSpec({ components: { schemas: {} } }),
+                makeSpec({ components: { schemas: { User: { type: 'object', properties: { id: { type: 'string' } } } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Schema Added');
+            assert.ok(c, 'should produce a Schema Added change');
+            assert.equal(c.category, 'added');
+            assert.equal(c.isBreaking, false);
+            assert.equal(c.details.schemaName, 'User');
+        });
+
+        it('detects schema removed and marks as breaking', () => {
+            const changes = diff(
+                makeSpec({ components: { schemas: { User: { type: 'object', properties: {} } } } }),
+                makeSpec({ components: { schemas: {} } })
+            );
+            const c = findChange(changes, c => c.type === 'Schema Removed');
+            assert.ok(c, 'should produce a Schema Removed change');
+            assert.equal(c.category, 'removed');
+            assert.equal(c.isBreaking, true);
+        });
+
+        it('detects schema property removed', () => {
+            const changes = diff(
+                makeSpec({ components: { schemas: { User: {
+                    type: 'object',
+                    properties: { id: { type: 'string' }, name: { type: 'string' } },
+                    required: ['id']
+                } } } }),
+                makeSpec({ components: { schemas: { User: {
+                    type: 'object',
+                    properties: { id: { type: 'string' } },
+                    required: ['id']
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Schema Property Removed' && c.details.property === 'name');
+            assert.ok(c, 'should produce a Schema Property Removed change');
+            assert.equal(c.category, 'removed');
+        });
+
+        it('detects schema property added', () => {
+            const changes = diff(
+                makeSpec({ components: { schemas: { User: {
+                    type: 'object',
+                    properties: { id: { type: 'string' } }
+                } } } }),
+                makeSpec({ components: { schemas: { User: {
+                    type: 'object',
+                    properties: { id: { type: 'string' }, email: { type: 'string' } }
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Schema Property Added' && c.details.property === 'email');
+            assert.ok(c, 'should produce a Schema Property Added change');
+            assert.equal(c.category, 'added');
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('detects property becoming required as breaking', () => {
+            const changes = diff(
+                makeSpec({ components: { schemas: { User: {
+                    type: 'object',
+                    properties: { id: { type: 'string' }, name: { type: 'string' } },
+                    required: ['id']
+                } } } }),
+                makeSpec({ components: { schemas: { User: {
+                    type: 'object',
+                    properties: { id: { type: 'string' }, name: { type: 'string' } },
+                    required: ['id', 'name']
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Property Now Required');
+            assert.ok(c, 'should produce a Property Now Required change');
+            assert.equal(c.isBreaking, true);
+        });
+    });
+
+    // 3h. Breaking change classification
+
+    describe('Breaking change classification', (it) => {
+        it('path removed is breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/a': { get: { responses: {} } } } }),
+                makeSpec({ paths: {} })
+            );
+            assert.equal(changes[0].isBreaking, true);
+        });
+
+        it('path added is non-breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: {} }),
+                makeSpec({ paths: { '/a': { get: { responses: {} } } } })
+            );
+            assert.equal(changes[0].isBreaking, false);
+        });
+
+        it('method removed is breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/a': { get: { responses: {} }, post: { responses: {} } } } }),
+                makeSpec({ paths: { '/a': { get: { responses: {} } } } })
+            );
+            const c = findChange(changes, c => c.type.includes('Method Removed'));
+            assert.equal(c.isBreaking, true);
+        });
+
+        it('method added is non-breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/a': { get: { responses: {} } } } }),
+                makeSpec({ paths: { '/a': { get: { responses: {} }, post: { responses: {} } } } })
+            );
+            const c = findChange(changes, c => c.type.includes('Method Added'));
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('required parameter added is breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/a': { get: { parameters: [], responses: {} } } } }),
+                makeSpec({ paths: { '/a': { get: {
+                    parameters: [{ name: 'x', in: 'query', required: true, schema: { type: 'string' } }],
+                    responses: {}
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Parameter Added');
+            assert.equal(c.isBreaking, true);
+        });
+
+        it('optional parameter added is non-breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/a': { get: { parameters: [], responses: {} } } } }),
+                makeSpec({ paths: { '/a': { get: {
+                    parameters: [{ name: 'x', in: 'query', required: false, schema: { type: 'string' } }],
+                    responses: {}
+                } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Parameter Added');
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('response removed is breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/a': { get: { responses: { '200': {}, '404': {} } } } } }),
+                makeSpec({ paths: { '/a': { get: { responses: { '200': {} } } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Response Removed');
+            assert.equal(c.isBreaking, true);
+        });
+
+        it('response added is non-breaking', () => {
+            const changes = diff(
+                makeSpec({ paths: { '/a': { get: { responses: { '200': {} } } } } }),
+                makeSpec({ paths: { '/a': { get: { responses: { '200': {}, '201': {} } } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Response Added');
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('schema removed is breaking', () => {
+            const changes = diff(
+                makeSpec({ components: { schemas: { Foo: { type: 'object' } } } }),
+                makeSpec({ components: { schemas: {} } })
+            );
+            const c = findChange(changes, c => c.type === 'Schema Removed');
+            assert.equal(c.isBreaking, true);
+        });
+
+        it('schema added is non-breaking', () => {
+            const changes = diff(
+                makeSpec({ components: { schemas: {} } }),
+                makeSpec({ components: { schemas: { Foo: { type: 'object' } } } })
+            );
+            const c = findChange(changes, c => c.type === 'Schema Added');
+            assert.equal(c.isBreaking, false);
+        });
+
+        it('version change is non-breaking', () => {
+            const changes = diff(
+                makeSpec({ info: { title: 'A', version: '1.0.0' } }),
+                makeSpec({ info: { title: 'A', version: '2.0.0' } })
+            );
+            const c = findChange(changes, c => c.type === 'Version Change');
+            assert.equal(c.isBreaking, false);
+        });
+    });
+
+    // 3i. Change object structure
+
+    describe('Change object structure', (it) => {
+        it('every change has required fields', () => {
+            const changes = diff(
+                makeSpec({
+                    info: { title: 'Old', version: '1.0.0' },
+                    paths: { '/a': { get: { responses: { '200': {} } } } },
+                    components: { schemas: { X: { type: 'object' } } }
+                }),
+                makeSpec({
+                    info: { title: 'New', version: '2.0.0' },
+                    paths: { '/b': { post: { responses: { '201': {} } } } },
+                    components: { schemas: { Y: { type: 'object' } } }
+                })
+            );
+
+            assert.ok(changes.length > 0, 'should produce at least one change');
+
+            for (const c of changes) {
+                assert.hasProperty(c, 'id', `change "${c.type}" missing id`);
+                assert.hasProperty(c, 'type', `change missing type`);
+                assert.hasProperty(c, 'path', `change "${c.type}" missing path`);
+                assert.hasProperty(c, 'category', `change "${c.type}" missing category`);
+                assert.hasProperty(c, 'isBreaking', `change "${c.type}" missing isBreaking`);
+                assert.hasProperty(c, 'details', `change "${c.type}" missing details`);
+                assert.hasProperty(c, 'timestamp', `change "${c.type}" missing timestamp`);
+            }
+        });
+
+        it('ids are unique across all changes', () => {
+            const changes = diff(
+                makeSpec({
+                    info: { title: 'Old', version: '1.0.0' },
+                    paths: { '/a': { get: { responses: {} } } }
+                }),
+                makeSpec({
+                    info: { title: 'New', version: '2.0.0' },
+                    paths: { '/b': { post: { responses: {} } } }
+                })
+            );
+            const ids = changes.map(c => c.id);
+            const uniqueIds = new Set(ids);
+            assert.equal(uniqueIds.size, ids.length, 'all change ids should be unique');
+        });
+
+        it('timestamp is a valid ISO string', () => {
+            const changes = diff(
+                makeSpec({ info: { title: 'A', version: '1.0.0' } }),
+                makeSpec({ info: { title: 'B', version: '1.0.0' } })
+            );
+            assert.ok(changes.length > 0);
+            for (const c of changes) {
+                const parsed = new Date(c.timestamp);
+                assert.ok(!isNaN(parsed.getTime()), `timestamp "${c.timestamp}" should be valid ISO`);
+            }
+        });
+
+        it('category is one of added/removed/modified', () => {
+            const changes = diff(
+                makeSpec({
+                    info: { title: 'Old', version: '1.0.0' },
+                    paths: { '/a': { get: { responses: {} } } }
+                }),
+                makeSpec({
+                    info: { title: 'New', version: '2.0.0' },
+                    paths: { '/b': { post: { responses: {} } } }
+                })
+            );
+            const validCategories = ['added', 'removed', 'modified'];
+            for (const c of changes) {
+                assert.ok(
+                    validCategories.includes(c.category),
+                    `change "${c.type}" has invalid category "${c.category}"`
+                );
+            }
+        });
+    });
+
+    runner.run();
+    </script>
+</body>
+</html>

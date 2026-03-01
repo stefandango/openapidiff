@@ -1,0 +1,17 @@
+# Test files
+tests.html
+
+# Workflow and docs
+.claude/
+.github/
+.git/
+.gitignore
+.editorconfig
+.mcp.json
+openspec/
+docs/
+CLAUDE.md
+VERSION
+README.md
+Dockerfile
+.dockerignore
