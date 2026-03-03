@@ -729,6 +729,173 @@
         });
     });
 
+    // $ref resolution
+
+    describe('$ref resolution — simple', (it) => {
+        it('resolves parameter schema $ref to actual content', () => {
+            const changes = diff(
+                {
+                    openapi: '3.0.0',
+                    info: { title: 'API', version: '1.0.0' },
+                    paths: { '/users': { get: {
+                        parameters: [{ name: 'id', in: 'query', required: true, schema: { '$ref': '#/components/schemas/UserId' } }],
+                        responses: {}
+                    } } },
+                    components: { schemas: { UserId: { type: 'string' } } }
+                },
+                {
+                    openapi: '3.0.0',
+                    info: { title: 'API', version: '1.0.0' },
+                    paths: { '/users': { get: {
+                        parameters: [{ name: 'id', in: 'query', required: true, schema: { '$ref': '#/components/schemas/UserId' } }],
+                        responses: {}
+                    } } },
+                    components: { schemas: { UserId: { type: 'integer' } } }
+                }
+            );
+            const c = findChange(changes, c => c.type === 'Parameter Type Changed');
+            assert.ok(c, 'should detect type change inside referenced schema');
+            assert.equal(c.details.old, 'string');
+            assert.equal(c.details.new, 'integer');
+        });
+
+        it('resolves response schema $ref', () => {
+            const changes = diff(
+                {
+                    openapi: '3.0.0',
+                    info: { title: 'API', version: '1.0.0' },
+                    paths: { '/users': { get: { responses: {
+                        '200': { description: 'OK', content: { 'application/json': { schema: { '$ref': '#/components/schemas/User' } } } }
+                    } } } },
+                    components: { schemas: { User: { type: 'object', properties: { id: { type: 'string' } } } } }
+                },
+                {
+                    openapi: '3.0.0',
+                    info: { title: 'API', version: '1.0.0' },
+                    paths: { '/users': { get: { responses: {
+                        '200': { description: 'OK', content: { 'application/json': { schema: { '$ref': '#/components/schemas/User' } } } }
+                    } } } },
+                    components: { schemas: { User: { type: 'object', properties: { id: { type: 'integer' } } } } }
+                }
+            );
+            const c = findChange(changes, c => c.type === 'Schema Property Type Changed' && c.details.property === 'id');
+            assert.ok(c, 'should detect property type change inside $ref-ed response schema');
+        });
+    });
+
+    describe('$ref resolution — nested', (it) => {
+        it('resolves nested $ref chains', () => {
+            const changes = diff(
+                {
+                    openapi: '3.0.0',
+                    info: { title: 'API', version: '1.0.0' },
+                    paths: {},
+                    components: { schemas: {
+                        Order: { type: 'object', properties: { item: { '$ref': '#/components/schemas/Item' } } },
+                        Item: { type: 'object', properties: { name: { type: 'string' } } }
+                    } }
+                },
+                {
+                    openapi: '3.0.0',
+                    info: { title: 'API', version: '1.0.0' },
+                    paths: {},
+                    components: { schemas: {
+                        Order: { type: 'object', properties: { item: { '$ref': '#/components/schemas/Item' } } },
+                        Item: { type: 'object', properties: { name: { type: 'string' }, price: { type: 'number' } } }
+                    } }
+                }
+            );
+            // The direct Item schema comparison should find the added property
+            const c = findChange(changes, c => c.type === 'Schema Property Added' && c.details.property === 'price');
+            assert.ok(c, 'should detect property added in nested referenced schema');
+        });
+    });
+
+    describe('$ref resolution — circular', (it) => {
+        it('handles circular references without infinite loop', () => {
+            const spec1 = {
+                openapi: '3.0.0',
+                info: { title: 'API', version: '1.0.0' },
+                paths: {},
+                components: { schemas: {
+                    Node: { type: 'object', properties: {
+                        value: { type: 'string' },
+                        child: { '$ref': '#/components/schemas/Node' }
+                    } }
+                } }
+            };
+            const spec2 = {
+                openapi: '3.0.0',
+                info: { title: 'API', version: '1.0.0' },
+                paths: {},
+                components: { schemas: {
+                    Node: { type: 'object', properties: {
+                        value: { type: 'integer' },
+                        child: { '$ref': '#/components/schemas/Node' }
+                    } }
+                } }
+            };
+            // Should not hang — just complete and detect the type change
+            const changes = diff(spec1, spec2);
+            const c = findChange(changes, c => c.type === 'Schema Property Type Changed' && c.details.property === 'value');
+            assert.ok(c, 'should detect change despite circular ref');
+        });
+    });
+
+    describe('$ref resolution — Swagger 2.0', (it) => {
+        it('resolves #/definitions/ format', () => {
+            const changes = diff(
+                {
+                    swagger: '2.0',
+                    info: { title: 'API', version: '1.0.0' },
+                    paths: { '/users': { get: {
+                        parameters: [{ name: 'id', in: 'query', required: true, schema: { '$ref': '#/definitions/UserId' } }],
+                        responses: {}
+                    } } },
+                    definitions: { UserId: { type: 'string' } }
+                },
+                {
+                    swagger: '2.0',
+                    info: { title: 'API', version: '1.0.0' },
+                    paths: { '/users': { get: {
+                        parameters: [{ name: 'id', in: 'query', required: true, schema: { '$ref': '#/definitions/UserId' } }],
+                        responses: {}
+                    } } },
+                    definitions: { UserId: { type: 'integer' } }
+                }
+            );
+            const c = findChange(changes, c => c.type === 'Parameter Type Changed');
+            assert.ok(c, 'should resolve Swagger 2.0 #/definitions/ $ref and detect type change');
+            assert.equal(c.details.old, 'string');
+            assert.equal(c.details.new, 'integer');
+        });
+    });
+
+    describe('$ref resolution — original not mutated', (it) => {
+        it('does not modify original spec objects', () => {
+            const spec1 = {
+                openapi: '3.0.0',
+                info: { title: 'API', version: '1.0.0' },
+                paths: { '/users': { get: {
+                    parameters: [{ name: 'id', in: 'query', required: true, schema: { '$ref': '#/components/schemas/UserId' } }],
+                    responses: {}
+                } } },
+                components: { schemas: { UserId: { type: 'string' } } }
+            };
+            const spec2 = JSON.parse(JSON.stringify(spec1));
+
+            const engine = new ComparisonEngine(spec1, spec2);
+            engine.compare();
+
+            // Original spec should still have the $ref
+            assert.equal(
+                spec1.paths['/users'].get.parameters[0].schema['$ref'],
+                '#/components/schemas/UserId',
+                'original spec1 should still have $ref pointer'
+            );
+        });
+    });
+
     runner.run();
     </script>
 </body>

@@ -18,9 +18,22 @@ class ComparisonEngine {
 
     compare() {
         this.changes = [];
+        // Resolve $ref pointers before comparison
+        const spec1 = this.resolveRefs(this.spec1);
+        const spec2 = this.resolveRefs(this.spec2);
+        this.spec1Resolved = spec1;
+        this.spec2Resolved = spec2;
+        // Use resolved specs for comparison
+        const origSpec1 = this.spec1;
+        const origSpec2 = this.spec2;
+        this.spec1 = spec1;
+        this.spec2 = spec2;
         this.compareInfo();
         this.comparePaths();
         this.compareComponents();
+        // Restore originals so constructor refs are unchanged
+        this.spec1 = origSpec1;
+        this.spec2 = origSpec2;
         return this.changes;
     }
 
@@ -1001,5 +1014,90 @@ class ComparisonEngine {
         if (!arr1 || !arr2) return true;
         if (arr1.length !== arr2.length) return true;
         return !arr1.every(item => arr2.includes(item));
+    }
+
+    // -------------------------------------------------------
+    // $ref resolution
+    // -------------------------------------------------------
+
+    /**
+     * Deep-clone a spec and resolve all local $ref pointers.
+     * Returns a new object — the original spec is not mutated.
+     */
+    resolveRefs(spec) {
+        const cloned = JSON.parse(JSON.stringify(spec));
+        this.resolveNode(cloned, cloned, new Set());
+        return cloned;
+    }
+
+    /**
+     * Recursively walk a node and replace $ref objects with referenced content.
+     * @param {*} node - current node being walked
+     * @param {object} root - the root spec (for resolving pointers)
+     * @param {Set} visited - set of $ref paths currently being resolved (cycle detection)
+     */
+    resolveNode(node, root, visited) {
+        if (node === null || typeof node !== 'object') return;
+
+        if (Array.isArray(node)) {
+            for (let i = 0; i < node.length; i++) {
+                if (node[i] !== null && typeof node[i] === 'object' && node[i]['$ref']) {
+                    node[i] = this.resolveRef(node[i]['$ref'], root, visited);
+                } else {
+                    this.resolveNode(node[i], root, visited);
+                }
+            }
+            return;
+        }
+
+        for (const key of Object.keys(node)) {
+            const value = node[key];
+            if (value === null || typeof value !== 'object') continue;
+
+            if (value['$ref']) {
+                node[key] = this.resolveRef(value['$ref'], root, visited);
+            } else {
+                this.resolveNode(value, root, visited);
+            }
+        }
+    }
+
+    /**
+     * Resolve a single $ref pointer string to its target content.
+     * Returns the resolved object, or the original $ref object if unresolvable/circular.
+     */
+    resolveRef(pointer, root, visited) {
+        // Only handle local refs (starting with #/)
+        if (typeof pointer !== 'string' || !pointer.startsWith('#/')) {
+            return { '$ref': pointer };
+        }
+
+        // Circular reference detection
+        if (visited.has(pointer)) {
+            return { '$ref': pointer };
+        }
+
+        const path = pointer.substring(2).split('/');
+        let target = root;
+
+        for (const segment of path) {
+            // Handle JSON Pointer escaping (RFC 6901)
+            const decoded = segment.replace(/~1/g, '/').replace(/~0/g, '~');
+            if (target === null || typeof target !== 'object' || !(decoded in target)) {
+                // Unresolvable ref — return as-is
+                return { '$ref': pointer };
+            }
+            target = target[decoded];
+        }
+
+        // Deep-clone the target to avoid shared references
+        const resolved = JSON.parse(JSON.stringify(target));
+
+        // Recursively resolve any nested $refs in the resolved content
+        visited.add(pointer);
+        this.resolveNode(resolved, root, visited);
+        visited.delete(pointer);
+
+        return resolved;
     }
 }
