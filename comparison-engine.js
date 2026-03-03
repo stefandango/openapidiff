@@ -21,8 +21,6 @@ class ComparisonEngine {
         // Resolve $ref pointers before comparison
         const spec1 = this.resolveRefs(this.spec1);
         const spec2 = this.resolveRefs(this.spec2);
-        this.spec1Resolved = spec1;
-        this.spec2Resolved = spec2;
         // Use resolved specs for comparison
         const origSpec1 = this.spec1;
         const origSpec2 = this.spec2;
